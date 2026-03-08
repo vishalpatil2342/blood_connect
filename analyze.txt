@@ -1,0 +1,10 @@
+﻿Analyzing blood_connect...                                      
+
+  error - Target of URI doesn't exist: 'package:blood_connect/data/app_database.dart' - lib\features\auth\presentation\providers\auth_provider.dart:1:8 - uri_does_not_exist
+  error - The name 'AppDatabase' isn't a type, so it can't be used as a type argument - lib\features\auth\presentation\providers\auth_provider.dart:5:35 - non_type_as_type_argument
+  error - The function 'AppDatabase' isn't defined - lib\features\auth\presentation\providers\auth_provider.dart:6:20 - undefined_function
+   info - Don't use 'BuildContext's across async gaps - lib\features\auth\presentation\screens\register_screen.dart:32:9 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\auth\presentation\screens\register_screen.dart:36:28 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\auth\presentation\screens\signin_screen.dart:28:9 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\auth\presentation\screens\signin_screen.dart:33:9 - use_build_context_synchronously
+
