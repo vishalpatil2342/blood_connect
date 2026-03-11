@@ -1,58 +1,88 @@
 import 'package:flutter/material.dart';
 
-// ==========================================
-// REUSABLE WIDGETS
-// ==========================================
-
-
-/// Custom Text Field with internal label and border formatting
-class CustomTextField extends StatelessWidget {
-  final String label;
+class CustomTextField extends StatefulWidget {
   final String hint;
+  final String? label;
   final bool isPassword;
   final TextInputType keyboardType;
   final TextEditingController controller;
+  final IconData prefixIcon;
+  final int maxLines;
 
   const CustomTextField({
     super.key,
-    required this.label,
     required this.hint,
+    this.label,
+    required this.prefixIcon,
     this.isPassword = false,
     this.keyboardType = TextInputType.text,
     required this.controller,
+    this.maxLines = 1,
   });
+
+  @override
+  State<CustomTextField> createState() => _CustomTextFieldState();
+}
+
+class _CustomTextFieldState extends State<CustomTextField> {
+  late bool _obscureText;
+
+  @override
+  void initState() {
+    super.initState();
+    _obscureText = widget.isPassword;
+  }
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4.0, bottom: 4.0),
-          child: Text(
-            label,
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-          ),
-        ),
-        TextField(
-          controller: controller,
-          obscureText: isPassword,
-          keyboardType: keyboardType,
-          style: const TextStyle(fontSize: 14),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 14,
+        if (widget.label != null) ...[
+          Text(
+            widget.label!,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
             ),
-            enabledBorder: OutlineInputBorder(
+          ),
+          const SizedBox(height: 8),
+        ],
+        TextField(
+          controller: widget.controller,
+          obscureText: _obscureText,
+          keyboardType: widget.keyboardType,
+          maxLines: widget.maxLines,
+          style: const TextStyle(fontSize: 16),
+          decoration: InputDecoration(
+            hintText: widget.hint,
+            hintStyle: TextStyle(color: Colors.grey[500], fontSize: 15),
+            filled: true,
+            fillColor: Colors.grey[100],
+            prefixIcon: Icon(widget.prefixIcon, color: Colors.grey[600], size: 20),
+            suffixIcon: widget.isPassword
+                ? IconButton(
+                    icon: Icon(
+                      _obscureText ? Icons.visibility_off : Icons.visibility,
+                      color: Colors.grey[600],
+                      size: 20,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _obscureText = !_obscureText;
+                      });
+                    },
+                  )
+                : null,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.grey[300]!),
+              borderSide: BorderSide.none,
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFFE60000)),
+              borderSide: const BorderSide(color: Color(0xFFE60000), width: 1.5),
             ),
           ),
         ),
