@@ -333,21 +333,21 @@ class HomeTab extends ConsumerWidget {
     return 'Just now';
   }
 
-  /// Smooth elevated request cards
+  /// Smooth elevated request cards with large typography
   Widget _buildRequestCard(BuildContext context, WidgetRef ref, BloodRequest request) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(20),
-      // ... existing UI
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.grey.shade100, width: 2),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.1),
+            color: const Color(0xFFFF2A5F).withValues(alpha: 0.08),
             spreadRadius: 0,
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -361,40 +361,114 @@ class HomeTab extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Name', style: TextStyle(color: Colors.grey[500], fontSize: 13, fontWeight: FontWeight.w500)),
-                    const SizedBox(height: 4),
-                    Text(request.patientName, style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w800, fontSize: 16)),
-                    const SizedBox(height: 16),
-                    Text('Location', style: TextStyle(color: Colors.grey[500], fontSize: 13, fontWeight: FontWeight.w500)),
-                    const SizedBox(height: 4),
-                    Text(request.hospital, style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w800, fontSize: 16)),
+                    Text(
+                      'PATIENT NAME',
+                      style: TextStyle(
+                        color: Colors.grey[500],
+                        fontSize: 14,
+                        letterSpacing: 1.2,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      request.patientName,
+                      style: const TextStyle(
+                        color: Colors.black87,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 22,
+                        height: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      'LOCATION',
+                      style: TextStyle(
+                        color: Colors.grey[500],
+                        fontSize: 14,
+                        letterSpacing: 1.2,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      request.hospital,
+                      style: const TextStyle(
+                        color: Colors.black87,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 18,
+                        height: 1.3,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ],
                 ),
               ),
-              // Droplet
-              Stack(
-                alignment: Alignment.center,
-                children: [
-                  const Icon(Icons.water_drop, size: 64, color: Color(0xFFFF2A5F)),
-                  Padding(
-                    padding: const EdgeInsets.only(top: 16),
-                    child: Text(request.bloodType, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 22)),
+              const SizedBox(width: 16),
+              // Prominent Blood Droplet Badge
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFFF4D4D), Color(0xFFE60000)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
-                ],
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFE60000).withValues(alpha: 0.3),
+                      blurRadius: 15,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.water_drop, color: Colors.white, size: 32),
+                    const SizedBox(height: 8),
+                    Text(
+                      request.bloodType,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 28,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
+          const SizedBox(height: 24),
+          const Divider(height: 1, color: Color(0xFFEEEEEE)),
           const SizedBox(height: 20),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Text(_getTimeAgo(request.createdAt), style: TextStyle(color: Colors.grey[500], fontSize: 13, fontWeight: FontWeight.w600)),
+              Row(
+                children: [
+                  Icon(Icons.access_time_filled, color: Colors.grey.shade400, size: 18),
+                  const SizedBox(width: 6),
+                  Text(
+                    _getTimeAgo(request.createdAt),
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
               GestureDetector(
                 onTap: () {
                   final userAsync = ref.read(userProfileProvider);
                   userAsync.whenData((currentUser) {
                     if (currentUser == null) return;
-                    
+
                     final isCompatible = BloodCompatibility.canDonate(
                       donorBloodType: currentUser.bloodType,
                       receiverBloodType: request.bloodType,
@@ -452,12 +526,26 @@ class HomeTab extends ConsumerWidget {
                     }
                   });
                 },
-                child: const Text(
-                  'Donate',
-                  style: TextStyle(
-                    color: Color(0xFFFF2A5F), 
-                    fontWeight: FontWeight.w900, 
-                    fontSize: 18,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFF2A5F).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Row(
+                    children: [
+                      Text(
+                        'Donate Now',
+                        style: TextStyle(
+                          color: Color(0xFFFF2A5F),
+                          fontWeight: FontWeight.w900,
+                          fontSize: 16,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      SizedBox(width: 4),
+                      Icon(Icons.arrow_forward_ios, size: 14, color: Color(0xFFFF2A5F)),
+                    ],
                   ),
                 ),
               ),

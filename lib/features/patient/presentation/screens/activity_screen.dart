@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:blood_connect/features/patient/presentation/providers/data_providers.dart';
+import 'package:blood_connect/features/patient/data/repositories/donation_repository.dart';
 
 class ActivityScreen extends StatelessWidget {
   const ActivityScreen({super.key});
@@ -16,16 +17,8 @@ class ActivityScreen extends StatelessWidget {
           iconTheme: const IconThemeData(color: Colors.white), // Makes back button white if present
           elevation: 0,
           centerTitle: true,
-          title: const Text(
-            'Activity',
-            style: TextStyle(
-              color: Colors.white, // White text
-              fontWeight: FontWeight.bold,
-              fontSize: 20,
-            ),
-          ),
           bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(60),
+            preferredSize: const Size.fromHeight(20),
             child: Container(
               margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
               padding: const EdgeInsets.all(4),
@@ -110,6 +103,41 @@ class _DonationsList extends ConsumerWidget {
               status: donation.status.toUpperCase(),
               statusColor: donation.status.toLowerCase() == 'completed' ? Colors.green : Colors.orange,
               icon: Icons.volunteer_activism_outlined,
+              actionWidget: PopupMenuButton<String>(
+                onSelected: (newValue) {
+                  if (newValue != donation.status.toLowerCase()) {
+                    ref.read(donationRepositoryProvider).updateDonationStatus(donation.id, newValue);
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey.shade300),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Update',
+                        style: TextStyle(fontSize: 10, color: Colors.grey.shade700, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(Icons.keyboard_arrow_down, size: 14, color: Colors.grey.shade700),
+                    ],
+                  ),
+                ),
+                itemBuilder: (context) => [
+                  const PopupMenuItem(
+                    value: 'pending',
+                    child: Text('Pending', style: TextStyle(fontSize: 14)),
+                  ),
+                  const PopupMenuItem(
+                    value: 'completed',
+                    child: Text('Completed', style: TextStyle(fontSize: 14)),
+                  ),
+                ],
+              ),
             );
           },
         );
@@ -170,6 +198,7 @@ Widget _buildActivityCard({
   required String status,
   required Color statusColor,
   required IconData icon,
+  Widget? actionWidget,
 }) {
   return Container(
     padding: const EdgeInsets.all(16),
@@ -260,6 +289,10 @@ Widget _buildActivityCard({
                 ),
               ),
             ),
+            if (actionWidget != null) ...[
+              const SizedBox(height: 8),
+              actionWidget,
+            ],
           ],
         ),
       ],

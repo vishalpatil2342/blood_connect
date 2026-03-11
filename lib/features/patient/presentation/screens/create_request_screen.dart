@@ -4,26 +4,27 @@ import 'package:blood_connect/shared/widgets/custom_text_field.dart';
 import 'package:blood_connect/core/models/blood_request_model.dart';
 import 'package:blood_connect/features/patient/data/repositories/request_repository.dart';
 import 'package:blood_connect/core/providers/firebase_providers.dart';
+import 'package:blood_connect/core/constants/indian_cities.dart';
 
 class CreateRequestScreen extends ConsumerStatefulWidget {
   const CreateRequestScreen({super.key});
 
   @override
-  ConsumerState<CreateRequestScreen> createState() => _CreateRequestScreenState();
+  ConsumerState<CreateRequestScreen> createState() =>
+      _CreateRequestScreenState();
 }
 
 class _CreateRequestScreenState extends ConsumerState<CreateRequestScreen> {
   final TextEditingController _patientNameController = TextEditingController();
-  final TextEditingController _cityController = TextEditingController();
   final TextEditingController _hospitalController = TextEditingController();
   final TextEditingController _bloodTypeController = TextEditingController();
   final TextEditingController _mobileController = TextEditingController();
+  String _selectedCity = IndianCities.locations.first;
   bool _isLoading = false;
 
   @override
   void dispose() {
     _patientNameController.dispose();
-    _cityController.dispose();
     _hospitalController.dispose();
     _bloodTypeController.dispose();
     _mobileController.dispose();
@@ -32,19 +33,25 @@ class _CreateRequestScreenState extends ConsumerState<CreateRequestScreen> {
 
   Future<void> _submitRequest() async {
     final patientName = _patientNameController.text.trim();
-    final city = _cityController.text.trim();
     final hospital = _hospitalController.text.trim();
     final bloodType = _bloodTypeController.text.trim();
     final mobile = _mobileController.text.trim();
 
-    if (patientName.isEmpty || city.isEmpty || hospital.isEmpty || bloodType.isEmpty || mobile.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill all fields')));
+    if (patientName.isEmpty ||
+        hospital.isEmpty ||
+        bloodType.isEmpty ||
+        mobile.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please fill all fields')));
       return;
     }
 
     final user = ref.read(firebaseAuthProvider).currentUser;
     if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please log in first')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please log in first')));
       return;
     }
 
@@ -54,7 +61,7 @@ class _CreateRequestScreenState extends ConsumerState<CreateRequestScreen> {
       final request = BloodRequest(
         id: '', // Firestore .add() generates ID.
         patientName: patientName,
-        city: city,
+        city: _selectedCity,
         hospital: hospital,
         bloodType: bloodType,
         mobile: mobile,
@@ -72,7 +79,9 @@ class _CreateRequestScreenState extends ConsumerState<CreateRequestScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to request: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to request: $e')));
       }
     }
   }
@@ -86,17 +95,28 @@ class _CreateRequestScreenState extends ConsumerState<CreateRequestScreen> {
             borderRadius: BorderRadius.circular(20),
           ),
           child: SizedBox(
-            width: 320, 
+            width: 320,
             child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 40.0, horizontal: 24.0),
+              padding: const EdgeInsets.symmetric(
+                vertical: 40.0,
+                horizontal: 24.0,
+              ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                   const Icon(Icons.check_circle_outline, size: 80, color: Colors.green),
+                  const Icon(
+                    Icons.check_circle_outline,
+                    size: 80,
+                    color: Colors.green,
+                  ),
                   const SizedBox(height: 32),
                   const Text(
                     'Success',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black87),
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   const Text(
@@ -121,7 +141,13 @@ class _CreateRequestScreenState extends ConsumerState<CreateRequestScreen> {
                         ),
                         elevation: 0,
                       ),
-                      child: const Text('Back to Home', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      child: const Text(
+                        'Back to Home',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -138,96 +164,172 @@ class _CreateRequestScreenState extends ConsumerState<CreateRequestScreen> {
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
         backgroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: true,
-        title: const Text(
-          'Create Blood Request',
-          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 20),
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          centerTitle: true,
+          title: const Text(
+            'Create Blood Request',
+            style: TextStyle(
+              color: Colors.black87,
+              fontWeight: FontWeight.bold,
+              fontSize: 20,
+            ),
+          ),
+          leading: IconButton(
+            icon: const Icon(
+              Icons.arrow_back_ios_new,
+              color: Colors.black87,
+              size: 18,
+            ),
+            onPressed: () => Navigator.pop(context),
+          ),
         ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black87, size: 18),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Patient Information',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
-            ),
-            const SizedBox(height: 20),
-            CustomTextField(
-              controller: _patientNameController,
-              hint: 'John Doe',
-              label: 'Patient Name',
-              prefixIcon: Icons.person_outline,
-            ),
-            const SizedBox(height: 16),
-            CustomTextField(
-              controller: _bloodTypeController,
-              hint: 'A+',
-              label: 'Blood Type',
-              prefixIcon: Icons.bloodtype_outlined,
-            ),
-            const SizedBox(height: 16),
-            CustomTextField(
-              controller: _cityController,
-              hint: 'San Francisco',
-              label: 'City',
-              prefixIcon: Icons.location_on_outlined,
-            ),
-            const SizedBox(height: 16),
-            CustomTextField(
-              controller: _hospitalController,
-              hint: 'City General Hospital',
-              label: 'Hospital',
-              prefixIcon: Icons.local_hospital_outlined,
-            ),
-            const SizedBox(height: 16),
-            CustomTextField(
-              controller: _mobileController,
-              hint: '+1 234 567 890',
-              label: 'Mobile Number',
-              prefixIcon: Icons.phone_outlined,
-              keyboardType: TextInputType.phone,
-            ),
-            const SizedBox(height: 40),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _isLoading ? null : _submitRequest,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFE60000),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 18),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  elevation: 0,
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Patient Information',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
                 ),
-                child: _isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                      )
-                    : const Text(
-                        'Submit Request',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
               ),
-            ),
-            const SizedBox(height: 20),
-          ],
+              const SizedBox(height: 20),
+              CustomTextField(
+                controller: _patientNameController,
+                hint: 'John Doe',
+                label: 'Patient Name',
+                prefixIcon: Icons.person_outline,
+              ),
+              const SizedBox(height: 16),
+              CustomTextField(
+                controller: _bloodTypeController,
+                hint: 'A+',
+                label: 'Blood Type',
+                prefixIcon: Icons.bloodtype_outlined,
+              ),
+              const SizedBox(height: 16),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'City / Location',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: _selectedCity,
+                        isExpanded: true,
+                        icon: Icon(
+                          Icons.keyboard_arrow_down,
+                          color: Colors.grey.shade600,
+                        ),
+                        items: IndianCities.locations.map((String city) {
+                          return DropdownMenuItem<String>(
+                            value: city,
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.location_on_outlined,
+                                  size: 20,
+                                  color: Color(0xFFE60000),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    city,
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.black87,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                        onChanged: (val) {
+                          setState(() => _selectedCity = val!);
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              CustomTextField(
+                controller: _hospitalController,
+                hint: 'City General Hospital',
+                label: 'Hospital',
+                prefixIcon: Icons.local_hospital_outlined,
+              ),
+              const SizedBox(height: 16),
+              CustomTextField(
+                controller: _mobileController,
+                hint: '+1 234 567 890',
+                label: 'Mobile Number',
+                prefixIcon: Icons.phone_outlined,
+                keyboardType: TextInputType.phone,
+              ),
+              const SizedBox(height: 40),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _submitRequest,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFE60000),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text(
+                          'Submit Request',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
         ),
       ),
-    )
     );
   }
 }

@@ -50,7 +50,7 @@ class PushNotificationService {
 
       // Initialize local notifications
       const AndroidInitializationSettings androidSettings =
-          AndroidInitializationSettings('@mipmap/icon');
+          AndroidInitializationSettings('@mipmap/logo');
       const DarwinInitializationSettings iosSettings = DarwinInitializationSettings();
       const InitializationSettings initSettings =
           InitializationSettings(android: androidSettings, iOS: iosSettings);

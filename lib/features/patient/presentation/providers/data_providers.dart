@@ -32,14 +32,14 @@ final emergencyRequestsProvider = StreamProvider<List<BloodRequest>>((ref) {
 
 // User's Own Requests Provider
 final myRequestsProvider = StreamProvider<List<BloodRequest>>((ref) {
-  final user = ref.watch(firebaseAuthProvider).currentUser;
+  final user = ref.watch(authStateProvider).value;
   if (user == null) return Stream.value([]);
   return ref.watch(requestRepositoryProvider).getUserRequests(user.uid);
 });
 
 // User's Own Donations Provider
 final myDonationsProvider = StreamProvider<List<Donation>>((ref) {
-  final user = ref.watch(firebaseAuthProvider).currentUser;
+  final user = ref.watch(authStateProvider).value;
   if (user == null) return Stream.value([]);
   return ref.watch(donationRepositoryProvider).getUserDonations(user.uid);
 });
@@ -64,10 +64,19 @@ final donorSearchQueryProvider = NotifierProvider<DonorSearchQuery, String>(() {
 final filteredDonorsProvider = Provider<AsyncValue<List<UserModel>>>((ref) {
   final query = ref.watch(donorSearchQueryProvider).toLowerCase();
   final donorsAsync = ref.watch(allDonorsProvider);
+  final currentUser = ref.watch(firebaseAuthProvider).currentUser;
   
   return donorsAsync.whenData((donors) {
-    if (query.isEmpty) return donors;
-    return donors.where((donor) {
+    // 1. First, always filter out the current user
+    var filtered = donors;
+    if (currentUser != null) {
+      filtered = filtered.where((donor) => donor.uid != currentUser.uid).toList();
+    }
+
+    // 2. Then, apply the search query if it's not empty
+    if (query.isEmpty) return filtered;
+
+    return filtered.where((donor) {
       return donor.name.toLowerCase().contains(query) ||
              donor.bloodType.toLowerCase().contains(query) ||
              donor.location.toLowerCase().contains(query);
@@ -82,7 +91,7 @@ final bloodBanksProvider = StreamProvider<List<BloodBankModel>>((ref) {
 
 // User Notifications Provider
 final notificationsProvider = StreamProvider<List<NotificationModel>>((ref) {
-  final user = ref.watch(firebaseAuthProvider).currentUser;
+  final user = ref.watch(authStateProvider).value;
   if (user == null) return Stream.value([]);
   return ref.watch(notificationRepositoryProvider).getUserNotifications(user.uid);
 });

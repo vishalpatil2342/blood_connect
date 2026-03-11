@@ -4,6 +4,7 @@ import 'package:blood_connect/shared/widgets/custom_text_field.dart';
 import 'package:blood_connect/features/patient/presentation/providers/data_providers.dart';
 import 'package:blood_connect/features/patient/data/repositories/donor_repository.dart';
 import 'package:blood_connect/core/models/user_model.dart';
+import 'package:blood_connect/core/constants/indian_cities.dart';
 
 class EditProfileScreen extends ConsumerStatefulWidget {
   const EditProfileScreen({super.key});
@@ -14,10 +15,10 @@ class EditProfileScreen extends ConsumerStatefulWidget {
 
 class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   final TextEditingController nameController = TextEditingController();
-  final TextEditingController locationController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
   
   String selectedBloodGroup = 'A+';
+  String selectedLocation = IndianCities.locations.first;
   final List<String> bloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
   bool _isLoading = false;
   bool _isInitialized = false;
@@ -30,10 +31,15 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       userAsync.whenData((user) {
         if (user != null) {
           nameController.text = user.name;
-          locationController.text = user.location;
           phoneController.text = user.phone;
           if (bloodGroups.contains(user.bloodType)) {
             selectedBloodGroup = user.bloodType;
+          }
+          if (IndianCities.locations.contains(user.location)) {
+            selectedLocation = user.location;
+          } else if (user.location.isNotEmpty && IndianCities.locations.isNotEmpty) {
+             // Fallback if the database has an old arbitrary string
+            selectedLocation = IndianCities.locations.first; 
           }
           _isInitialized = true;
         }
@@ -44,7 +50,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   @override
   void dispose() {
     nameController.dispose();
-    locationController.dispose();
     phoneController.dispose();
     super.dispose();
   }
@@ -63,7 +68,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         email: user.email, // Email usually doesn't change here
         phone: phoneController.text.trim(),
         bloodType: selectedBloodGroup,
-        location: locationController.text.trim(),
+        location: selectedLocation,
         photoUrl: user.photoUrl,
         createdAt: user.createdAt,
         authProvider: user.authProvider,
@@ -181,19 +186,31 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                     const SizedBox(height: 20),
 
                     CustomTextField(
-                      controller: locationController,
-                      prefixIcon: Icons.location_on_outlined,
-                      hint: 'Your Location',
-                      label: 'Location',
-                    ),
-                    const SizedBox(height: 20),
-
-                    CustomTextField(
                       controller: phoneController,
                       prefixIcon: Icons.phone_outlined,
                       hint: 'Your Phone',
                       label: 'Phone Number',
                       keyboardType: TextInputType.phone,
+                    ),
+                    const SizedBox(height: 20),
+
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Location',
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black87),
+                        ),
+                        const SizedBox(height: 8),
+                        _buildDropdown(
+                          value: selectedLocation,
+                          items: IndianCities.locations,
+                          icon: Icons.location_on_outlined,
+                          onChanged: (val) {
+                            setState(() => selectedLocation = val!);
+                          },
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 20),
 

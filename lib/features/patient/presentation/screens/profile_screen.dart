@@ -132,9 +132,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     children: [
                       _buildStatColumn('Blood Type', user.bloodType),
                       _buildDivider(),
-                      _buildStatColumn('Donated', '${donationsCount.toString().padLeft(2, '0')} Times'), // Placeholder for now
+                      _buildStatColumn('Donated', '${donationsCount.toString()} Times'), // Placeholder for now
                       _buildDivider(),
-                      _buildStatColumn('Requested', '${requestsCount.toString().padLeft(2, '0')} Times'), // Placeholder for now
+                      _buildStatColumn('Requested', '${requestsCount.toString()} Times'), // Placeholder for now
                     ],
                   ),
                   const SizedBox(height: 40),
@@ -153,18 +153,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   const SizedBox(height: 16),
                   
                   // Menu Items
-                  _buildMenuItem(
-                    icon: Icons.history_rounded,
-                    title: 'Request History',
-                    onTap: () {},
-                  ),
-                  const SizedBox(height: 16),
-                  _buildMenuItem(
-                    icon: Icons.favorite_outline_rounded,
-                    title: 'My FavoritesDonors',
-                    onTap: () {},
-                  ),
-                  const SizedBox(height: 16),
+
                   _buildMenuItem(
                     icon: Icons.logout_rounded,
                     title: 'Sign Out',

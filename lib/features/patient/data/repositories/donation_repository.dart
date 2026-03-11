@@ -26,4 +26,8 @@ class DonationRepository {
   Future<void> createDonation(Donation donation) async {
     await _donations.add(donation.toMap());
   }
+
+  Future<void> updateDonationStatus(String donationId, String status) async {
+    await _donations.doc(donationId).update({'status': status});
+  }
 }
