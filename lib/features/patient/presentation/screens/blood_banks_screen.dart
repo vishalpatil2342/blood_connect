@@ -1,28 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:blood_connect/features/patient/presentation/providers/data_providers.dart';
+import 'package:blood_connect/core/models/blood_bank_model.dart';
 
-class BloodBanksScreen extends StatelessWidget {
+class BloodBanksScreen extends ConsumerWidget {
   const BloodBanksScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    // Dummy data for blood banks
-    final List<Map<String, dynamic>> bloodBanks = [
-      {
-        'name': 'Red Cross Central',
-        'location': 'Downtown Medical District',
-        'inventory': {'A+': 12, 'B+': 8, 'O+': 24, 'AB+': 3, 'A-': 5, 'B-': 2, 'O-': 7, 'AB-': 1},
-      },
-      {
-        'name': 'City General Hospital',
-        'location': 'Northside',
-        'inventory': {'A+': 5, 'B+': 15, 'O+': 10, 'AB+': 2, 'A-': 1, 'B-': 4, 'O-': 3, 'AB-': 0},
-      },
-      {
-        'name': 'Community Blood Center',
-        'location': 'Westend Suburbs',
-        'inventory': {'A+': 20, 'B+': 10, 'O+': 30, 'AB+': 5, 'A-': 8, 'B-': 2, 'O-': 12, 'AB-': 2},
-      },
-    ];
+  Widget build(BuildContext context, WidgetRef ref) {
+    final bloodBanksAsync = ref.watch(bloodBanksProvider);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F8FA),
@@ -41,27 +27,42 @@ class BloodBanksScreen extends StatelessWidget {
         automaticallyImplyLeading: false, 
       ),
       body: SafeArea(
-        child: ListView.separated(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-          itemCount: bloodBanks.length,
-          separatorBuilder: (context, index) => const SizedBox(height: 20),
-          itemBuilder: (context, index) {
-            final bank = bloodBanks[index];
-            return _buildBloodBankCard(bank);
+        child: bloodBanksAsync.when(
+          loading: () => const Center(
+            child: CircularProgressIndicator(color: Color(0xFFE60000)),
+          ),
+          error: (error, stack) => Center(
+            child: Text('Error loading blood banks: $error', style: const TextStyle(color: Colors.black87)),
+          ),
+          data: (bloodBanks) {
+            if (bloodBanks.isEmpty) {
+              return const Center(
+                child: Text('No blood banks found.', style: TextStyle(color: Colors.black87)),
+              );
+            }
+            return ListView.separated(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+              itemCount: bloodBanks.length,
+              separatorBuilder: (context, index) => const SizedBox(height: 20),
+              itemBuilder: (context, index) {
+                final bank = bloodBanks[index];
+                return _buildBloodBankCard(bank);
+              },
+            );
           },
         ),
       ),
     );
   }
 
-  Widget _buildBloodBankCard(Map<String, dynamic> bank) {
+  Widget _buildBloodBankCard(BloodBankModel bank) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -78,7 +79,7 @@ class BloodBanksScreen extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFF2A5F).withOpacity(0.1),
+                    color: const Color(0xFFFF2A5F).withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Icons.local_hospital_rounded, color: Color(0xFFFF2A5F), size: 28),
@@ -89,7 +90,7 @@ class BloodBanksScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        bank['name'],
+                        bank.name,
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -98,7 +99,7 @@ class BloodBanksScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        bank['location'],
+                        bank.location,
                         style: TextStyle(
                           fontSize: 14,
                           color: Colors.grey.shade500,
@@ -132,7 +133,7 @@ class BloodBanksScreen extends StatelessWidget {
                 Wrap(
                   spacing: 12,
                   runSpacing: 12,
-                  children: (bank['inventory'] as Map<String, int>).entries.map((entry) {
+                  children: bank.inventory.entries.map((entry) {
                     return _buildBloodTypeBadge(entry.key, entry.value);
                   }).toList(),
                 ),
@@ -173,10 +174,10 @@ class BloodBanksScreen extends StatelessWidget {
       width: 60,
       padding: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
-        color: count > 0 ? const Color(0xFFFF2A5F).withOpacity(0.05) : Colors.grey.shade100,
+        color: count > 0 ? const Color(0xFFFF2A5F).withValues(alpha: 0.05) : Colors.grey.shade100,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: count > 0 ? const Color(0xFFFF2A5F).withOpacity(0.2) : Colors.transparent,
+          color: count > 0 ? const Color(0xFFFF2A5F).withValues(alpha: 0.2) : Colors.transparent,
         ),
       ),
       child: Column(

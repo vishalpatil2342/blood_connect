@@ -73,7 +73,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
 
-    return Scaffold(
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child:Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
         children: [
@@ -118,7 +120,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: Colors.black.withValues(alpha: 0.1),
                           blurRadius: 20,
                           spreadRadius: 5,
                           offset: const Offset(0, 5),
@@ -164,7 +166,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           children: [
                             Checkbox(
                               value: _acceptTerms,
-                              activeColor: const Color(0xFFE60000),
                               onChanged: (value) {
                                 setState(() {
                                   _acceptTerms = value ?? false;
@@ -251,6 +252,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           ),
         ],
       ),
+    ),
     );
   }
 }

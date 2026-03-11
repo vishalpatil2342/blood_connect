@@ -7,9 +7,7 @@ class FindDonorsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final donors = ref.watch(filteredDonorsProvider);
-    final donorsAsync = ref.watch(allDonorsProvider);
-
+    final filteredDonorsAsync = ref.watch(filteredDonorsProvider);
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -52,7 +50,7 @@ class FindDonorsScreen extends ConsumerWidget {
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.grey.withOpacity(0.08),
+                          color: Colors.grey.withValues(alpha: 0.08),
                           blurRadius: 20,
                           offset: const Offset(0, 4),
                         ),
@@ -81,7 +79,7 @@ class FindDonorsScreen extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFFFF2A5F).withOpacity(0.3),
+                        color: const Color(0xFFFF2A5F).withValues(alpha: 0.3),
                         blurRadius: 15,
                         offset: const Offset(0, 4),
                       ),
@@ -95,10 +93,10 @@ class FindDonorsScreen extends ConsumerWidget {
           
           // Donors List
           Expanded(
-            child: donorsAsync.when(
+            child: filteredDonorsAsync.when(
               loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFFE60000))),
               error: (err, stack) => Center(child: Text('Error loading donors: $err')),
-              data: (_) {
+              data: (donors) {
                 if (donors.isEmpty) {
                   return const Center(child: Text('No donors found at the moment.'));
                 }
@@ -139,7 +137,7 @@ class FindDonorsScreen extends ConsumerWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.08),
+            color: Colors.grey.withValues(alpha: 0.08),
             blurRadius: 20,
             offset: const Offset(0, 4),
           ),

@@ -75,7 +75,9 @@ class _PhoneLoginScreenState extends ConsumerState<PhoneLoginScreen> {
     final size = MediaQuery.of(context).size;
     final isLoading = ref.watch(authControllerProvider).isLoading;
 
-    return Scaffold(
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child:Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: const Color(0xFFff1818),
@@ -125,7 +127,7 @@ class _PhoneLoginScreenState extends ConsumerState<PhoneLoginScreen> {
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: Colors.black.withValues(alpha: 0.1),
                           blurRadius: 20,
                           spreadRadius: 5,
                           offset: const Offset(0, 5),
@@ -176,6 +178,7 @@ class _PhoneLoginScreenState extends ConsumerState<PhoneLoginScreen> {
           ),
         ],
       ),
+    ),
     );
   }
 }

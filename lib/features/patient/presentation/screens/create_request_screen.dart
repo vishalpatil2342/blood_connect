@@ -135,7 +135,9 @@ class _CreateRequestScreenState extends ConsumerState<CreateRequestScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -225,6 +227,7 @@ class _CreateRequestScreenState extends ConsumerState<CreateRequestScreen> {
           ],
         ),
       ),
+    )
     );
   }
 }

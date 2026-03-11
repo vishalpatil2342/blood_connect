@@ -1,18 +1,28 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:blood_connect/core/services/push_notification_service.dart';
 import 'package:blood_connect/features/patient/presentation/screens/home_tab.dart';
 import 'package:blood_connect/features/patient/presentation/screens/profile_screen.dart';
 import 'package:blood_connect/features/patient/presentation/screens/blood_banks_screen.dart';
 import 'package:blood_connect/features/patient/presentation/screens/activity_screen.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(pushNotificationServiceProvider).initialize();
+    });
+  }
 
   // The 4 main screens for the navigation tabs
   final List<Widget> _screens = [
@@ -37,7 +47,7 @@ class _HomeScreenState extends State<HomeScreen> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 20,
             spreadRadius: 0,
             offset: const Offset(0, -2),

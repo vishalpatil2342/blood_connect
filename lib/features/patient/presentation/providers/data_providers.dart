@@ -6,6 +6,10 @@ import 'package:blood_connect/features/patient/data/repositories/donor_repositor
 import 'package:blood_connect/features/patient/data/repositories/request_repository.dart';
 import 'package:blood_connect/features/patient/data/repositories/donation_repository.dart';
 import 'package:blood_connect/core/models/donation_model.dart';
+import 'package:blood_connect/core/models/blood_bank_model.dart';
+import 'package:blood_connect/features/patient/data/repositories/blood_bank_repository.dart';
+import 'package:blood_connect/core/models/notification_model.dart';
+import 'package:blood_connect/features/patient/data/repositories/notification_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 // Current User Profile Provider
@@ -56,22 +60,29 @@ final donorSearchQueryProvider = NotifierProvider<DonorSearchQuery, String>(() {
   return DonorSearchQuery();
 });
 
-// Filtered Donors Provider (obs: now depends on the search query provider automatically)
-final filteredDonorsProvider = Provider<List<UserModel>>((ref) {
-  final query = ref.watch(donorSearchQueryProvider);
+// lib/features/patient/presentation/providers/data_providers.dart
+final filteredDonorsProvider = Provider<AsyncValue<List<UserModel>>>((ref) {
+  final query = ref.watch(donorSearchQueryProvider).toLowerCase();
   final donorsAsync = ref.watch(allDonorsProvider);
   
-  return donorsAsync.when(
-    data: (donors) {
-      if (query.isEmpty) return donors;
-      final lowercaseQuery = query.toLowerCase();
-      return donors.where((donor) {
-        return donor.name.toLowerCase().contains(lowercaseQuery) ||
-               donor.bloodType.toLowerCase().contains(lowercaseQuery) ||
-               donor.location.toLowerCase().contains(lowercaseQuery);
-      }).toList();
-    },
-    loading: () => [],
-    error: (_, __) => [],
-  );
+  return donorsAsync.whenData((donors) {
+    if (query.isEmpty) return donors;
+    return donors.where((donor) {
+      return donor.name.toLowerCase().contains(query) ||
+             donor.bloodType.toLowerCase().contains(query) ||
+             donor.location.toLowerCase().contains(query);
+    }).toList();
+  });
+});
+
+// Blood Banks Provider
+final bloodBanksProvider = StreamProvider<List<BloodBankModel>>((ref) {
+  return ref.watch(bloodBankRepositoryProvider).getBloodBanks();
+});
+
+// User Notifications Provider
+final notificationsProvider = StreamProvider<List<NotificationModel>>((ref) {
+  final user = ref.watch(firebaseAuthProvider).currentUser;
+  if (user == null) return Stream.value([]);
+  return ref.watch(notificationRepositoryProvider).getUserNotifications(user.uid);
 });

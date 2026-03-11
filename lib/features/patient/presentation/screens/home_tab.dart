@@ -1,10 +1,16 @@
 import 'package:blood_connect/features/patient/presentation/providers/data_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:blood_connect/core/models/notification_model.dart';
+import 'package:blood_connect/core/models/donation_model.dart';
+import 'package:blood_connect/features/patient/data/repositories/notification_repository.dart';
+import 'package:blood_connect/features/patient/data/repositories/donation_repository.dart';
+import 'package:blood_connect/core/services/push_notification_service.dart';
 import 'package:flutter/material.dart';
 import 'package:blood_connect/core/models/blood_request_model.dart';
 import 'package:blood_connect/features/patient/presentation/screens/notifications_screen.dart';
 import 'package:blood_connect/features/patient/presentation/screens/find_donors_screen.dart';
 import 'package:blood_connect/features/patient/presentation/screens/create_request_screen.dart';
+import 'package:blood_connect/core/utils/blood_compatibility.dart';
 
 class HomeTab extends ConsumerWidget {
   const HomeTab({super.key});
@@ -156,7 +162,7 @@ class HomeTab extends ConsumerWidget {
                       physics: const NeverScrollableScrollPhysics(),
                       itemCount: requests.length > 10 ? 10 : requests.length,
                       itemBuilder: (context, index) {
-                        return _buildRequestCard(requests[index]);
+                        return _buildRequestCard(context, ref, requests[index]);
                       },
                     );
                   },
@@ -176,7 +182,12 @@ class HomeTab extends ConsumerWidget {
   Widget _buildRedHeader(BuildContext context, WidgetRef ref) {
     final userAsync = ref.watch(userProfileProvider);
     final userName = userAsync.when(
-      data: (user) => user?.name ?? 'User',
+      data: (user) {
+        if (user == null || user.name.trim().isEmpty) {
+          return 'User';
+        }
+        return user.name;
+      },
       loading: () => '...',
       error: (_, __) => 'User',
     );
@@ -231,7 +242,7 @@ class HomeTab extends ConsumerWidget {
                 child: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withValues(alpha: 0.2),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Icons.notifications_active, color: Colors.white, size: 20),
@@ -279,7 +290,7 @@ class HomeTab extends ConsumerWidget {
           borderRadius: BorderRadius.circular(28), 
           boxShadow: [
             BoxShadow(
-              color: backgroundColor.withOpacity(0.6),
+              color: backgroundColor.withValues(alpha: 0.6),
               blurRadius: 15,
               spreadRadius: 2,
               offset: const Offset(0, 6), 
@@ -323,16 +334,17 @@ class HomeTab extends ConsumerWidget {
   }
 
   /// Smooth elevated request cards
-  Widget _buildRequestCard(BloodRequest request) {
+  Widget _buildRequestCard(BuildContext context, WidgetRef ref, BloodRequest request) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(20),
+      // ... existing UI
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             spreadRadius: 0,
             blurRadius: 10,
             offset: const Offset(0, 4),
@@ -378,7 +390,68 @@ class HomeTab extends ConsumerWidget {
             children: [
               Text(_getTimeAgo(request.createdAt), style: TextStyle(color: Colors.grey[500], fontSize: 13, fontWeight: FontWeight.w600)),
               GestureDetector(
-                onTap: () {},
+                onTap: () {
+                  final userAsync = ref.read(userProfileProvider);
+                  userAsync.whenData((currentUser) {
+                    if (currentUser == null) return;
+                    
+                    final isCompatible = BloodCompatibility.canDonate(
+                      donorBloodType: currentUser.bloodType,
+                      receiverBloodType: request.bloodType,
+                    );
+
+                    if (isCompatible) {
+                      final pushService = ref.read(pushNotificationServiceProvider);
+                      final notificationRepo = ref.read(notificationRepositoryProvider);
+                      final donationRepo = ref.read(donationRepositoryProvider);
+
+                      // In-app immediate alert for the donor
+                      pushService.showInAppNotification(
+                        title: 'Donation Accepted',
+                        body: 'You successfully signed up to donate ${request.bloodType} blood!',
+                      );
+
+                      // Save inbox notification for the receiver
+                      notificationRepo.createNotification(
+                        NotificationModel(
+                          id: '', // Firestore auto-generates ID
+                          userId: request.requesterId,
+                          title: 'Donor Found!',
+                          message: '${currentUser.name} has accepted your request for ${request.bloodType} blood.',
+                          isRead: false,
+                          createdAt: DateTime.now(),
+                        ),
+                      );
+
+                      // Save the donation transaction
+                      donationRepo.createDonation(
+                        Donation(
+                          id: '', // Firestore auto ID
+                          donorId: currentUser.uid,
+                          requestId: request.id,
+                          hospital: request.hospital,
+                          bloodType: request.bloodType,
+                          donationDate: DateTime.now(),
+                          status: 'pending',
+                        ),
+                      );
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Thank you! You are compatible. Request accepted.'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Sorry, your blood type (${currentUser.bloodType}) is not compatible with ${request.bloodType}.'),
+                          backgroundColor: Colors.redAccent,
+                        ),
+                      );
+                    }
+                  });
+                },
                 child: const Text(
                   'Donate',
                   style: TextStyle(
@@ -404,12 +477,12 @@ class HomeTab extends ConsumerWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16), // Slightly less rounded so it screams "square shape"
         border: Border.all(
-          color: const Color(0xFFFF2A5F).withOpacity(0.5),
+          color: const Color(0xFFFF2A5F).withValues(alpha: 0.5),
           width: 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),

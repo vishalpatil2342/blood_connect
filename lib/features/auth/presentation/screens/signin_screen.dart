@@ -61,7 +61,9 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
 
-    return Scaffold(
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
         children: [
@@ -105,7 +107,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: Colors.black.withValues(alpha: 0.1),
                           blurRadius: 20,
                           spreadRadius: 5,
                           offset: const Offset(0, 5),
@@ -232,6 +234,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
           ),
         ],
       ),
-    );
+    )
+  );
   }
 }

@@ -23,11 +23,13 @@ class DonorRepository {
   }
 
   Future<void> updateUserProfile(UserModel user) async {
-    await _users.doc(user.uid).update(user.toMap());
+    await _users.doc(user.uid).set(user.toMap(),SetOptions(merge: true));
   }
 
-  Stream<UserModel> getUserProfile(String uid) {
-    return _users.doc(uid).snapshots().map(
-        (doc) => UserModel.fromMap(doc.data() as Map<String, dynamic>, doc.id));
+  Stream<UserModel?> getUserProfile(String uid) {
+    return _users.doc(uid).snapshots().map((doc) {
+      if (!doc.exists || doc.data() == null) return null;
+      return UserModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+    });
   }
 }

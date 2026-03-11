@@ -90,7 +90,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Scaffold(
       backgroundColor: const Color(0xFFF7F8FA),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -161,7 +163,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.04),
+                      color: Colors.black.withValues(alpha: 0.04),
                       blurRadius: 20,
                       offset: const Offset(0, 10),
                     ),
@@ -231,7 +233,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                       borderRadius: BorderRadius.circular(16),
                     ),
                     elevation: 4,
-                    shadowColor: const Color(0xFFFF2A5F).withOpacity(0.5),
+                    shadowColor: const Color(0xFFFF2A5F).withValues(alpha: 0.5),
                   ),
                   child: _isLoading 
                     ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white))
@@ -246,6 +248,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           ),
         ),
       ),
+    ),
     );
   }
 
@@ -272,7 +275,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               value: item,
               child: Row(
                 children: [
-                  Icon(icon, size: 20, color: const Color(0xFFFF2A5F).withOpacity(0.8)),
+                  Icon(icon, size: 20, color: const Color(0xFFFF2A5F).withValues(alpha: 0.8)),
                   const SizedBox(width: 8),
                   Text(
                     item,

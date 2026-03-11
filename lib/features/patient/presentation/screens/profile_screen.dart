@@ -19,6 +19,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Widget build(BuildContext context) {
     final userAsync = ref.watch(userProfileProvider);
 
+    // 1. Watch the donations and requests providers
+    final myDonationsAsync = ref.watch(myDonationsProvider);
+    final myRequestsAsync = ref.watch(myRequestsProvider);
+
+    // 2. Safely extract the count (default to 0 if loading or error)
+    final donationsCount = myDonationsAsync.value?.length ?? 0;
+    final requestsCount = myRequestsAsync.value?.length ?? 0;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF7F8FA),
       appBar: AppBar(
@@ -124,9 +132,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     children: [
                       _buildStatColumn('Blood Type', user.bloodType),
                       _buildDivider(),
-                      _buildStatColumn('Donated', '03 Time'), // Placeholder for now
+                      _buildStatColumn('Donated', '${donationsCount.toString().padLeft(2, '0')} Times'), // Placeholder for now
                       _buildDivider(),
-                      _buildStatColumn('Requested', '02 Time'), // Placeholder for now
+                      _buildStatColumn('Requested', '${requestsCount.toString().padLeft(2, '0')} Times'), // Placeholder for now
                     ],
                   ),
                   const SizedBox(height: 40),
@@ -219,7 +227,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.05),
+            color: Colors.grey.withValues(alpha: 0.05),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
@@ -242,7 +250,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: const Color(0xFFFF2A5F),
+            activeThumbColor: const Color(0xFFFF2A5F),
           ),
         ],
       ),
@@ -263,7 +271,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.05),
+              color: Colors.grey.withValues(alpha: 0.05),
               blurRadius: 15,
               offset: const Offset(0, 5),
             ),

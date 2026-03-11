@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:blood_connect/features/patient/presentation/providers/data_providers.dart';
+import 'package:blood_connect/core/models/notification_model.dart';
+import 'package:blood_connect/features/patient/data/repositories/notification_repository.dart';
 
-class NotificationsScreen extends StatelessWidget {
+class NotificationsScreen extends ConsumerWidget {
   const NotificationsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final notificationsAsync = ref.watch(notificationsProvider);
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -22,89 +28,118 @@ class NotificationsScreen extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: 5, // Just some dummy data for now
-        itemBuilder: (context, index) {
-          return _buildNotificationItem(
-            title: 'New Blood Request',
-            message: 'Urgent: A+ blood needed at City Hospital.',
-            time: '${index + 1} hours ago',
-            isUnread: index < 2, // First two are unread
+      body: notificationsAsync.when(
+        loading: () => const Center(
+          child: CircularProgressIndicator(color: Color(0xFFE60000)),
+        ),
+        error: (error, stack) => Center(
+          child: Text('Error: $error', style: const TextStyle(color: Colors.black87)),
+        ),
+        data: (notifications) {
+          if (notifications.isEmpty) {
+            return const Center(
+              child: Text("You have no new notifications.", style: TextStyle(color: Colors.black87)),
+            );
+          }
+          return ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: notifications.length,
+            itemBuilder: (context, index) {
+              final notification = notifications[index];
+              return _buildNotificationItem(
+                context, 
+                ref,
+                notification,
+              );
+            },
           );
         },
       ),
     );
   }
 
-  Widget _buildNotificationItem({
-    required String title,
-    required String message,
-    required String time,
-    required bool isUnread,
-  }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isUnread ? const Color(0xFFFFF0F5) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isUnread ? const Color(0xFFE60000).withOpacity(0.3) : Colors.grey.shade200,
+  String _getTimeAgo(DateTime dateTime) {
+    final difference = DateTime.now().difference(dateTime);
+    if (difference.inDays > 0) return '${difference.inDays} days ago';
+    if (difference.inHours > 0) return '${difference.inHours} hours ago';
+    if (difference.inMinutes > 0) return '${difference.inMinutes} mins ago';
+    return 'Just now';
+  }
+
+  Widget _buildNotificationItem(
+    BuildContext context,
+    WidgetRef ref,
+    NotificationModel notification,
+  ) {
+    return GestureDetector(
+      onTap: () {
+        if (!notification.isRead) {
+          ref.read(notificationRepositoryProvider).markAsRead(notification.id);
+        }
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: !notification.isRead ? const Color(0xFFFFF0F5) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: !notification.isRead ? const Color(0xFFE60000).withValues(alpha: 0.3) : Colors.grey.shade200,
+          ),
         ),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: isUnread ? const Color(0xFFE60000) : Colors.grey.shade100,
-              shape: BoxShape.circle,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: !notification.isRead ? const Color(0xFFE60000) : Colors.grey.shade100,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.water_drop,
+                color: !notification.isRead ? Colors.white : Colors.grey.shade600,
+                size: 20,
+              ),
             ),
-            child: Icon(
-              Icons.water_drop,
-              color: isUnread ? Colors.white : Colors.grey.shade600,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontWeight: isUnread ? FontWeight.bold : FontWeight.w600,
-                        fontSize: 16,
-                        color: Colors.black87,
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        notification.title,
+                        style: TextStyle(
+                          fontWeight: !notification.isRead ? FontWeight.bold : FontWeight.w600,
+                          fontSize: 16,
+                          color: Colors.black87,
+                        ),
                       ),
-                    ),
-                    Text(
-                      time,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade500,
+                      Text(
+                        _getTimeAgo(notification.createdAt),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade500,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  message,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey.shade700,
+                    ],
                   ),
-                ),
-              ],
+                  const SizedBox(height: 4),
+                  Text(
+                    notification.message,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

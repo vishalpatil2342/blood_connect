@@ -1,0 +1,10 @@
+Analyzing push_notification_service.dart...
+
+  error - push_notification_service.dart:58:33 - The named parameter 'settings' is required, but there's no corresponding argument. Try adding the required argument. - missing_required_argument
+  error - push_notification_service.dart:58:44 - Too many positional arguments: 0 expected, but 1 found. Try removing the extra positional arguments, or specifying the name for named arguments. - extra_positional_arguments_could_be_named
+  error - push_notification_service.dart:92:33 - The named parameter 'id' is required, but there's no corresponding argument. Try adding the required argument. - missing_required_argument
+  error - push_notification_service.dart:93:9 - Too many positional arguments: 0 expected, but 4 found. Try removing the extra positional arguments, or specifying the name for named arguments. - extra_positional_arguments_could_be_named
+  error - push_notification_service.dart:115:31 - The named parameter 'id' is required, but there's no corresponding argument. Try adding the required argument. - missing_required_argument
+  error - push_notification_service.dart:116:7 - Too many positional arguments: 0 expected, but 4 found. Try removing the extra positional arguments, or specifying the name for named arguments. - extra_positional_arguments_could_be_named
+
+6 issues found.
