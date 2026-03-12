@@ -1,0 +1,49 @@
+Analyzing blood_connect...                                      
+
+warning - Unused import: 'package:blood_connect/core/models/notification_model.dart' - lib\features\patient\presentation\screens\home_tab.dart:3:8 - unused_import
+warning - Unused import: 'package:blood_connect/core/models/donation_model.dart' - lib\features\patient\presentation\screens\home_tab.dart:4:8 - unused_import
+warning - Unused import: 'package:blood_connect/features/patient/data/repositories/notification_repository.dart' - lib\features\patient\presentation\screens\home_tab.dart:5:8 - unused_import
+warning - Unused import: 'package:blood_connect/features/patient/data/repositories/donation_repository.dart' - lib\features\patient\presentation\screens\home_tab.dart:6:8 - unused_import
+warning - Unused import: 'package:blood_connect/core/services/push_notification_service.dart' - lib\features\patient\presentation\screens\home_tab.dart:7:8 - unused_import
+warning - Unused import: 'package:blood_connect/core/utils/blood_compatibility.dart' - lib\features\patient\presentation\screens\home_tab.dart:13:8 - unused_import
+warning - The declaration '_getTimeAgo' isn't referenced - lib\features\patient\presentation\screens\home_tab.dart:747:10 - unused_element
+  error - Expected to find ';' - lib\features\patient\presentation\screens\home_tab.dart:758:17 - expected_token
+warning - Dead code - lib\features\patient\presentation\screens\home_tab.dart:758:18 - dead_code
+  error - Expected an identifier - lib\features\patient\presentation\screens\home_tab.dart:758:18 - missing_identifier
+  error - Expected to find ';' - lib\features\patient\presentation\screens\home_tab.dart:758:18 - expected_token
+  error - Unexpected text ';' - lib\features\patient\presentation\screens\home_tab.dart:758:18 - unexpected_token
+  error - Expected an identifier - lib\features\patient\presentation\screens\home_tab.dart:759:15 - missing_identifier
+  error - Expected to find ';' - lib\features\patient\presentation\screens\home_tab.dart:759:15 - expected_token
+  error - Unexpected text ';' - lib\features\patient\presentation\screens\home_tab.dart:759:15 - unexpected_token
+  error - Expected an identifier - lib\features\patient\presentation\screens\home_tab.dart:759:16 - missing_identifier
+  error - Expected to find ';' - lib\features\patient\presentation\screens\home_tab.dart:759:16 - expected_token
+  error - Unexpected text ';' - lib\features\patient\presentation\screens\home_tab.dart:759:16 - unexpected_token
+  error - Expected an identifier - lib\features\patient\presentation\screens\home_tab.dart:760:13 - missing_identifier
+  error - Expected to find ';' - lib\features\patient\presentation\screens\home_tab.dart:760:13 - expected_token
+  error - Unexpected text ';' - lib\features\patient\presentation\screens\home_tab.dart:760:13 - unexpected_token
+  error - Expected an identifier - lib\features\patient\presentation\screens\home_tab.dart:760:14 - missing_identifier
+  error - Expected to find ';' - lib\features\patient\presentation\screens\home_tab.dart:760:14 - expected_token
+  error - Unexpected text ';' - lib\features\patient\presentation\screens\home_tab.dart:760:14 - unexpected_token
+  error - Expected an identifier - lib\features\patient\presentation\screens\home_tab.dart:761:11 - missing_identifier
+  error - Expected to find ';' - lib\features\patient\presentation\screens\home_tab.dart:761:11 - expected_token
+  error - Unexpected text ';' - lib\features\patient\presentation\screens\home_tab.dart:761:11 - unexpected_token
+  error - Expected an identifier - lib\features\patient\presentation\screens\home_tab.dart:761:12 - missing_identifier
+  error - Expected to find ';' - lib\features\patient\presentation\screens\home_tab.dart:761:12 - expected_token
+  error - Unexpected text ';' - lib\features\patient\presentation\screens\home_tab.dart:761:12 - unexpected_token
+  error - Expected an identifier - lib\features\patient\presentation\screens\home_tab.dart:762:9 - missing_identifier
+  error - Expected to find ';' - lib\features\patient\presentation\screens\home_tab.dart:762:9 - expected_token
+  error - Unexpected text ';' - lib\features\patient\presentation\screens\home_tab.dart:762:9 - unexpected_token
+  error - Expected an identifier - lib\features\patient\presentation\screens\home_tab.dart:762:10 - missing_identifier
+  error - Expected to find ';' - lib\features\patient\presentation\screens\home_tab.dart:762:10 - expected_token
+  error - Unexpected text ';' - lib\features\patient\presentation\screens\home_tab.dart:762:10 - unexpected_token
+  error - Expected an identifier - lib\features\patient\presentation\screens\home_tab.dart:763:7 - missing_identifier
+  error - Expected to find ';' - lib\features\patient\presentation\screens\home_tab.dart:763:7 - expected_token
+  error - Unexpected text ';' - lib\features\patient\presentation\screens\home_tab.dart:763:7 - unexpected_token
+  error - Expected an identifier - lib\features\patient\presentation\screens\home_tab.dart:763:8 - missing_identifier
+  error - Expected to find ';' - lib\features\patient\presentation\screens\home_tab.dart:763:8 - expected_token
+  error - Unexpected text ';' - lib\features\patient\presentation\screens\home_tab.dart:763:8 - unexpected_token
+  error - Expected an identifier - lib\features\patient\presentation\screens\home_tab.dart:764:5 - missing_identifier
+  error - Unexpected text ';' - lib\features\patient\presentation\screens\home_tab.dart:764:5 - unexpected_token
+   info - Unnecessary empty statement - lib\features\patient\presentation\screens\home_tab.dart:764:6 - empty_statements
+
+45 issues found. (ran in 5.4s)

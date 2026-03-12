@@ -27,6 +27,8 @@ class BloodBankRepository {
     required String patientName,
     required String urgency,
     required String location,
+    required String requesterId,
+    required String mobile,
   }) async {
     return _firestore.runTransaction((transaction) async {
       final bankDoc = _bloodBanks.doc(bankId);
@@ -37,7 +39,10 @@ class BloodBankRepository {
       }
 
       final data = snapshot.data() as Map<String, dynamic>;
-      final inventory = Map<String, int>.from(data['inventory'] ?? {});
+      final inventoryData = data['inventory'] as Map<String, dynamic>? ?? {};
+      final inventory = inventoryData.map(
+        (key, value) => MapEntry(key, (value as num).toInt()),
+      );
       final currentUnits = inventory[bloodType] ?? 0;
 
       if (currentUnits < units) {
@@ -58,13 +63,54 @@ class BloodBankRepository {
         'city': location,
         'hospital': data['hospitalName'] ?? '',
         'bloodType': bloodType,
-        'mobile': '', // UI should handle this
-        'requesterId': '', // UI should handle this
-        'status': 'pending',
+        'mobile': mobile,
+        'requesterId': requesterId,
+        'status': 'Completed',
         'createdAt': FieldValue.serverTimestamp(),
       });
 
       return newUnits;
+    });
+  }
+
+  Future<void> recordDonation({
+    required String bankId,
+    required Map<String, dynamic> donationData,
+  }) async {
+    return _firestore.runTransaction((transaction) async {
+      final bankDoc = _bloodBanks.doc(bankId);
+      final snapshot = await transaction.get(bankDoc);
+
+      if (!snapshot.exists) {
+        throw Exception('Blood Bank not found');
+      }
+
+      final data = snapshot.data() as Map<String, dynamic>;
+      final inventoryData = data['inventory'] as Map<String, dynamic>? ?? {};
+      final inventory = inventoryData.map(
+        (key, value) => MapEntry(key, (value as num).toInt()),
+      );
+
+      final bloodType = donationData['bloodType'] as String;
+      final currentUnits = inventory[bloodType] ?? 0;
+
+      // Check capacity (max 15 units)
+      if (currentUnits >= 15) {
+        throw Exception('Bank is Full');
+      }
+
+      // Increment inventory
+      inventory[bloodType] = currentUnits + 1;
+
+      // Update inventory
+      transaction.update(bankDoc, {'inventory': inventory});
+
+      // Save to donations collection
+      final donationRef = _firestore.collection('donations').doc();
+      transaction.set(donationRef, {
+        ...donationData,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
     });
   }
 

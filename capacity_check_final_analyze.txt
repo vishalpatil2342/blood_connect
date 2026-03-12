@@ -1,0 +1,10 @@
+Analyzing blood_connect...                                      
+
+  error - Undefined name 'myDonationsProvider' - lib\features\patient\presentation\screens\activity_screen.dart:125:22 - undefined_identifier
+  error - Undefined name 'myRequestsProvider' - lib\features\patient\presentation\screens\activity_screen.dart:206:22 - undefined_identifier
+  error - Undefined name 'userProfileProvider' - lib\features\patient\presentation\screens\activity_screen.dart:402:41 - undefined_identifier
+  error - Undefined name 'bloodBanksProvider' - lib\features\patient\presentation\screens\activity_screen.dart:410:35 - undefined_identifier
+  error - Undefined name 'bloodBanksProvider' - lib\features\patient\presentation\screens\activity_screen.dart:462:46 - undefined_identifier
+  error - Undefined name 'userProfileProvider' - lib\features\patient\presentation\screens\activity_screen.dart:463:47 - undefined_identifier
+
+6 issues found. (ran in 4.7s)

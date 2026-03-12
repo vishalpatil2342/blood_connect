@@ -1,0 +1,5 @@
+Analyzing blood_connect...                                      
+
+  error - Undefined name 'bloodBankRepositoryProvider' - lib\features\patient\presentation\screens\activity_screen.dart:426:29 - undefined_identifier
+
+1 issue found. (ran in 4.9s)

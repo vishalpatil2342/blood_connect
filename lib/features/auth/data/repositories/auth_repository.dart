@@ -34,6 +34,7 @@ class AuthRepository {
     String name,
     String location,
     String bloodType,
+    String phone,
   ) async {
     final userCredential = await _auth.createUserWithEmailAndPassword(
       email: email,
@@ -45,12 +46,62 @@ class AuthRepository {
       await _firestore.collection('users').doc(userCredential.user!.uid).set({
         'name': name,
         'email': email,
+        'phone': phone,
         'bloodType': bloodType.isEmpty ? 'Unknown' : bloodType,
         'location': location.isEmpty ? 'Unknown Location' : location,
         'photoUrl': '',
         'createdAt': FieldValue.serverTimestamp(),
+        'authProvider': 'email',
         'isAvailableForDonation': true,
       });
+
+      // Check if any blood bank exists near this user
+      if (location.isNotEmpty && location != 'Unknown Location') {
+        final existingBanks = await _firestore
+            .collection('blood_banks')
+            .where('location', isEqualTo: location)
+            .limit(1)
+            .get();
+
+        if (existingBanks.docs.isEmpty) {
+          // Create a default blood bank for this new location
+          final hospitalNames = [
+            'City General Hospital',
+            'Metro Life Care',
+            'Unity Medical Center',
+            'Lifeline Multispeciality',
+            'Grace Community Hospital'
+          ];
+          final bankNames = [
+            'Red Cross Blood Bank',
+            'LifeSource Blood Center',
+            'Guardian Blood Services',
+            'Primum Blood Hub',
+            'City Central Blood Bank'
+          ];
+
+          final randomHospital =
+              hospitalNames[DateTime.now().millisecond % hospitalNames.length];
+          final randomBank =
+              bankNames[DateTime.now().microsecond % bankNames.length];
+
+          await _firestore.collection('blood_banks').add({
+            'name': randomBank,
+            'hospitalName': randomHospital,
+            'location': location,
+            'inventory': {
+              'A+': 15,
+              'A-': 15,
+              'B+': 15,
+              'B-': 15,
+              'AB+': 15,
+              'AB-': 15,
+              'O+': 15,
+              'O-': 15,
+            },
+          });
+        }
+      }
     }
 
     return userCredential;

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:blood_connect/core/models/notification_model.dart';
 import 'package:blood_connect/core/models/donation_model.dart';
 import 'package:blood_connect/features/patient/data/repositories/notification_repository.dart';
+import 'package:blood_connect/features/patient/data/repositories/request_repository.dart';
 import 'package:blood_connect/features/patient/data/repositories/donation_repository.dart';
 import 'package:blood_connect/core/services/push_notification_service.dart';
 import 'package:flutter/material.dart';
@@ -12,6 +13,9 @@ import 'package:blood_connect/features/patient/presentation/screens/find_donors_
 import 'package:blood_connect/features/patient/presentation/screens/create_request_screen.dart';
 import 'package:blood_connect/core/utils/blood_compatibility.dart';
 import 'package:blood_connect/core/models/blood_bank_model.dart';
+import 'package:blood_connect/features/patient/data/repositories/blood_bank_repository.dart';
+import 'package:blood_connect/core/providers/firebase_providers.dart';
+import 'package:blood_connect/core/services/emergency_notification_service.dart';
 
 class HomeTab extends ConsumerWidget {
   const HomeTab({super.key});
@@ -160,7 +164,7 @@ class HomeTab extends ConsumerWidget {
         return user.name;
       },
       loading: () => '...',
-      error: (_, __) => 'User',
+      error: (err, stack) => 'User',
     );
     return Container(
       width: double.infinity,
@@ -210,13 +214,59 @@ class HomeTab extends ConsumerWidget {
                     ),
                   );
                 },
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    shape: BoxShape.circle,
+                child: ref.watch(notificationsProvider).when(
+                  data: (notifications) {
+                    final unreadCount = notifications.where((n) => !n.isRead).length;
+                    return Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.2),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.notifications_active, color: Colors.white, size: 20),
+                        ),
+                        if (unreadCount > 0)
+                          Positioned(
+                            right: -2,
+                            top: -2,
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: const BoxDecoration(
+                                color: Colors.yellow, // Contrast with red background
+                                shape: BoxShape.circle,
+                              ),
+                              child: Text(
+                                unreadCount > 9 ? '9+' : unreadCount.toString(),
+                                style: const TextStyle(
+                                  color: Colors.black87,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                  loading: () => Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.notifications_active, color: Colors.white, size: 20),
                   ),
-                  child: const Icon(Icons.notifications_active, color: Colors.white, size: 20),
+                  error: (err, stack) => Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.notifications_active, color: Colors.white, size: 20),
+                  ),
                 ),
               ),
             ],
@@ -308,16 +358,19 @@ class HomeTab extends ConsumerWidget {
         ),
         const SizedBox(height: 8),
         userAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFFE60000))),
           error: (err, _) => Text('Error: $err'),
           data: (user) {
             final userCity = user?.location ?? 'Unknown';
             return banksAsync.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
+              loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFFE60000))),
               error: (err, _) => Text('Error: $err'),
               data: (banks) {
-                final nearbyBanks =
-                    banks.where((b) => b.location == userCity).toList();
+                final nearbyBanks = banks
+                    .where((b) =>
+                        b.location.trim().toLowerCase() ==
+                        userCity.trim().toLowerCase())
+                    .toList();
 
                 if (nearbyBanks.isEmpty) {
                   return Container(
@@ -343,14 +396,14 @@ class HomeTab extends ConsumerWidget {
                 }
 
                 return SizedBox(
-                  height: 290, // Reverted and slightly increased to ensure no overflow
+                  height: 360, // Reduced from 440 to match smaller card size
                   child: ListView.builder(
                     scrollDirection: Axis.horizontal,
                     itemCount: nearbyBanks.length,
                     clipBehavior: Clip.none,
                     itemBuilder: (context, index) {
                       final bank = nearbyBanks[index];
-                      return _buildNearbyBankCard(bank);
+                      return _buildNearbyBankCard(context, ref, bank);
                     },
                   ),
                 );
@@ -362,11 +415,11 @@ class HomeTab extends ConsumerWidget {
     );
   }
 
-  Widget _buildNearbyBankCard(BloodBankModel bank) {
+  Widget _buildNearbyBankCard(BuildContext context, WidgetRef ref, BloodBankModel bank) {
     return Container(
-      width: 410,
-      margin: const EdgeInsets.only(right: 20, bottom: 10, top: 5),
-      padding: const EdgeInsets.all(24),
+      width: 320, // Reduced from 410 for a more compact look
+      margin: const EdgeInsets.only(right: 16, bottom: 16, top: 4),
+      padding: const EdgeInsets.all(20), // Reduced from 24
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(32),
@@ -388,152 +441,306 @@ class HomeTab extends ConsumerWidget {
           width: 1.5,
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      const Color(0xFFE60000).withValues(alpha: 0.15),
-                      const Color(0xFFE60000).withValues(alpha: 0.05),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+      child: SingleChildScrollView(
+        physics: const NeverScrollableScrollPhysics(), // Content should fit or scroll internally if pushed
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12), // Reduced slightly
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        const Color(0xFFE60000).withValues(alpha: 0.15),
+                        const Color(0xFFE60000).withValues(alpha: 0.05),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    shape: BoxShape.circle,
                   ),
-                  shape: BoxShape.circle,
+                  child: const Icon(
+                    Icons.local_hospital_rounded,
+                    color: Color(0xFFE60000),
+                    size: 20, // Reduced slightly
+                  ),
                 ),
-                child: const Icon(
-                  Icons.local_hospital_rounded,
-                  color: Color(0xFFE60000),
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      bank.hospitalName,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w900,
-                        fontSize: 17,
-                        letterSpacing: -0.5,
-                        color: Colors.black87,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        bank.hospitalName,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 16, // Reduced slightly
+                          letterSpacing: -0.5,
+                          color: Colors.black87,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      bank.name,
-                      style: TextStyle(
-                        color: Colors.grey.shade500,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
+                      const SizedBox(height: 2),
+                      Text(
+                        bank.name,
+                        style: TextStyle(
+                          color: Colors.grey.shade500,
+                          fontSize: 12, // Reduced slightly
+                          fontWeight: FontWeight.w600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
+              ],
+            ),
+            const SizedBox(height: 16), // Reduced from 20
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'LIVE INVENTORY',
+                  style: TextStyle(
+                    fontSize: 10, // Reduced slightly
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.2,
+                    color: Colors.grey.shade400,
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: const BoxDecoration(
+                          color: Colors.green,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'UPDATED',
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.green.shade700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12), // Reduced from 16
+            // 2x4 Grid (4 Up 4 Down)
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 4,
+                mainAxisSpacing: 8,
+                crossAxisSpacing: 6, // Reduced from 8
+                childAspectRatio: 0.78, // Adjusted for smaller card width
               ),
-            ],
+              itemCount: bank.inventory.length,
+              itemBuilder: (context, index) {
+                final entry = bank.inventory.entries.elementAt(index);
+                return _buildInventoryItem(context, ref, bank, entry.key, entry.value);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInventoryItem(BuildContext context, WidgetRef ref, BloodBankModel bank, String type, int quantity) {
+    // Determine status color and fill
+    final bool isLow = quantity < 5;
+    final bool isEmpty = quantity == 0;
+    
+    // assuming 50 units is full for visualization
+    final double fillLevel = (quantity / 25.0).clamp(0.1, 1.0);
+
+    return GestureDetector(
+      onTap: !isEmpty ? () => _showRequestDialog(context, ref, bank, type) : null,
+      child: Column(
+        children: [
+          _BloodVial(
+            fillLevel: fillLevel,
+            isEmpty: isEmpty,
+            color: isLow ? const Color(0xFFE60000) : const Color(0xFF4CAF50),
           ),
-          const SizedBox(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'LIVE INVENTORY',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.5,
-                  color: Colors.grey.shade400,
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.green.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 6,
-                      height: 6,
-                      decoration: const BoxDecoration(
-                        color: Colors.green,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      'UPDATED',
-                      style: TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.green.shade700,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          const SizedBox(height: 8),
+          Text(
+            type,
+            style: const TextStyle(
+              fontWeight: FontWeight.w900,
+              fontSize: 12,
+              color: Colors.black87,
+            ),
           ),
-          const SizedBox(height: 16),
-          // Horizontal scroll for stock if too many, or wrap
-          Wrap(
-            spacing: 14,
-            runSpacing: 14,
-            children: bank.inventory.entries.map((entry) {
-              return _buildInventoryItem(entry.key, entry.value);
-            }).toList(),
+          Text(
+            '$quantity Units',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 10,
+              color: isLow ? const Color(0xFFE60000) : Colors.grey.shade500,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildInventoryItem(String type, int quantity) {
-    // Determine status color and fill
-    final bool isLow = quantity < 5;
-    final bool isEmpty = quantity == 0;
-    
-    // assuming 50 units is full for visualization
-    final double fillLevel = (quantity / 50.0).clamp(0.1, 1.0);
+  void _showRequestDialog(
+      BuildContext context, WidgetRef ref, BloodBankModel bank, String type) {
+    final nameController = TextEditingController();
 
-    return Column(
-      children: [
-        _BloodVial(
-          fillLevel: fillLevel,
-          isEmpty: isEmpty,
-          color: isLow ? const Color(0xFFE60000) : const Color(0xFFE60000),
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Request $type Blood',
+            style: const TextStyle(fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Requesting from ${bank.name}',
+                style: const TextStyle(fontSize: 14, color: Colors.grey)),
+            const SizedBox(height: 20),
+            TextField(
+              controller: nameController,
+              decoration: InputDecoration(
+                hintText: 'Patient Name',
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 8),
-        Text(
-          type,
-          style: const TextStyle(
-            fontWeight: FontWeight.w900,
-            fontSize: 12,
-            color: Colors.black87,
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
           ),
-        ),
-        Text(
-          '$quantity Units',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 10,
-            color: isLow ? const Color(0xFFE60000) : Colors.grey.shade500,
+          ElevatedButton(
+            onPressed: () async {
+              final name = nameController.text.trim();
+              if (name.isEmpty) return;
+
+              final currentUnits = bank.inventory[type] ?? 0;
+              final user = ref.read(firebaseAuthProvider).currentUser;
+              final userProfile = ref.read(userProfileProvider).value;
+              
+              if (user == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Please log in first')),
+                );
+                return;
+              }
+
+              Navigator.pop(context); // Close dialog
+
+              if (currentUnits == 0) {
+                // Already out of stock, create emergency request
+                final emergencyRequest = BloodRequest(
+                  id: '',
+                  patientName: name,
+                  city: bank.location,
+                  hospital: bank.hospitalName,
+                  bloodType: type,
+                  mobile: userProfile?.phone ?? '',
+                  requesterId: user.uid,
+                  status: 'pending',
+                  createdAt: DateTime.now(),
+                );
+
+                try {
+                  await ref
+                      .read(emergencyNotificationServiceProvider)
+                      .saveAndBroadcastEmergencyRequest(emergencyRequest);
+
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Bank out of stock. Emergency broadcast sent to donors!'),
+                        backgroundColor: Colors.orange,
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Failed to broadcast: $e')),
+                    );
+                  }
+                }
+                return;
+              }
+
+              try {
+
+                final remainingUnits =
+                    await ref.read(bloodBankRepositoryProvider).requestBlood(
+                          bankId: bank.id,
+                          bloodType: type,
+                          units: 1,
+                          patientName: name,
+                          urgency: 'Emergency',
+                          location: bank.location,
+                          requesterId: user.uid,
+                          mobile: userProfile?.phone ?? '',
+                        );
+
+                if (remainingUnits == 0) {
+                  // Trigger notification
+                  await ref
+                      .read(emergencyNotificationServiceProvider)
+                      .notifyBankStockZero(bank, type);
+                }
+
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                          'Emergency request submitted! $remainingUnits units remaining.'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error: ${e.toString()}'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFE60000),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Request 1 Unit'),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -546,229 +753,211 @@ class HomeTab extends ConsumerWidget {
     return 'Just now';
   }
 
-  /// Smooth elevated request cards with large typography
+  /// The redesigned compact "Small Card" for emergency requests
   Widget _buildRequestCard(BuildContext context, WidgetRef ref, BloodRequest request) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 20),
-      padding: const EdgeInsets.all(24),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.grey.shade100, width: 2),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.shade50, width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFFF2A5F).withValues(alpha: 0.08),
-            spreadRadius: 0,
-            blurRadius: 20,
-            offset: const Offset(0, 8),
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'PATIENT NAME',
-                      style: TextStyle(
-                        color: Colors.grey[500],
-                        fontSize: 14,
-                        letterSpacing: 1.2,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      request.patientName,
-                      style: const TextStyle(
-                        color: Colors.black87,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 22,
-                        height: 1.2,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    Text(
-                      'LOCATION',
-                      style: TextStyle(
-                        color: Colors.grey[500],
-                        fontSize: 14,
-                        letterSpacing: 1.2,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      request.hospital,
-                      style: const TextStyle(
-                        color: Colors.black87,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 18,
-                        height: 1.3,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+          // 🩸 Compact Blood Type Badge
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFFFF4D4D), Color(0xFFE60000)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFFE60000).withValues(alpha: 0.2),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Center(
+              child: Text(
+                request.bloodType,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 18,
+                  letterSpacing: -0.5,
                 ),
               ),
-              const SizedBox(width: 16),
-              // Prominent Blood Droplet Badge
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFFF4D4D), Color(0xFFE60000)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFFE60000).withValues(alpha: 0.3),
-                      blurRadius: 15,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.water_drop, color: Colors.white, size: 32),
-                    const SizedBox(height: 8),
-                    Text(
-                      request.bloodType,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 28,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+            ),
           ),
-          const SizedBox(height: 24),
-          const Divider(height: 1, color: Color(0xFFEEEEEE)),
-          const SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Row(
-                children: [
-                  Icon(Icons.access_time_filled, color: Colors.grey.shade400, size: 18),
-                  const SizedBox(width: 6),
-                  Text(
-                    _getTimeAgo(request.createdAt),
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                    ),
+          const SizedBox(width: 14),
+          
+          // 👤 Info Section
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  request.patientName,
+                  style: const TextStyle(
+                    color: Colors.black87,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.2,
                   ),
-                ],
-              ),
-              GestureDetector(
-                onTap: () {
-                  final userAsync = ref.read(userProfileProvider);
-                  userAsync.whenData((currentUser) {
-                    if (currentUser == null) return;
-
-                    final isCompatible = BloodCompatibility.canDonate(
-                      donorBloodType: currentUser.bloodType,
-                      receiverBloodType: request.bloodType,
-                    );
-
-                    if (isCompatible) {
-                      final pushService = ref.read(pushNotificationServiceProvider);
-                      final notificationRepo = ref.read(notificationRepositoryProvider);
-                      final donationRepo = ref.read(donationRepositoryProvider);
-
-                      // In-app immediate alert for the donor
-                      pushService.showInAppNotification(
-                        title: 'Donation Accepted',
-                        body: 'You successfully signed up to donate ${request.bloodType} blood!',
-                      );
-
-                      // Save inbox notification for the receiver
-                      notificationRepo.createNotification(
-                        NotificationModel(
-                          id: '', // Firestore auto-generates ID
-                          userId: request.requesterId,
-                          title: 'Donor Found!',
-                          message: '${currentUser.name} has accepted your request for ${request.bloodType} blood.',
-                          isRead: false,
-                          createdAt: DateTime.now(),
-                        ),
-                      );
-
-                      // Save the donation transaction
-                      donationRepo.createDonation(
-                        Donation(
-                          id: '', // Firestore auto ID
-                          donorId: currentUser.uid,
-                          requestId: request.id,
-                          hospital: request.hospital,
-                          bloodType: request.bloodType,
-                          donationDate: DateTime.now(),
-                          status: 'pending',
-                        ),
-                      );
-
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Thank you! You are compatible. Request accepted.'),
-                          backgroundColor: Colors.green,
-                        ),
-                      );
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Sorry, your blood type (${currentUser.bloodType}) is not compatible with ${request.bloodType}.'),
-                          backgroundColor: Colors.redAccent,
-                        ),
-                      );
-                    }
-                  });
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFF2A5F).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  request.hospital,
+                  style: TextStyle(
+                    color: Colors.grey.shade600,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                    height: 1.2,
                   ),
-                  child: const Row(
-                    children: [
-                      Text(
-                        'Donate Now',
-                        style: TextStyle(
-                          color: Color(0xFFFF2A5F),
-                          fontWeight: FontWeight.w900,
-                          fontSize: 16,
-                          letterSpacing: 0.5,
-                        ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(Icons.access_time_rounded, size: 12, color: Colors.grey.shade400),
+                    const SizedBox(width: 4),
+                    Text(
+                      _getTimeAgo(request.createdAt),
+                      style: TextStyle(
+                        color: Colors.grey.shade500,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
                       ),
-                      SizedBox(width: 4),
-                      Icon(Icons.arrow_forward_ios, size: 14, color: Color(0xFFFF2A5F)),
-                    ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          
+          const SizedBox(width: 8),
+          
+          // ⚡ Action Button
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () => _handleDonation(context, ref, request),
+              borderRadius: BorderRadius.circular(14),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE60000).withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Text(
+                  'Donate',
+                  style: TextStyle(
+                    color: Color(0xFFE60000),
+                    fontWeight: FontWeight.w800,
+                    fontSize: 13,
                   ),
                 ),
               ),
-            ],
+            ),
           ),
         ],
       ),
     );
   }
+
+  void _handleDonation(BuildContext context, WidgetRef ref, BloodRequest request) {
+    final userAsync = ref.read(userProfileProvider);
+    userAsync.whenData((currentUser) {
+      if (currentUser == null) return;
+
+      final isCompatible = BloodCompatibility.canDonate(
+        donorBloodType: currentUser.bloodType,
+        receiverBloodType: request.bloodType,
+      );
+
+      if (isCompatible) {
+        final pushService = ref.read(pushNotificationServiceProvider);
+        final notificationRepo = ref.read(notificationRepositoryProvider);
+        final donationRepo = ref.read(donationRepositoryProvider);
+        final requestRepo = ref.read(requestRepositoryProvider);
+
+        // In-app immediate alert for the donor
+        pushService.showInAppNotification(
+          title: 'Donation Accepted',
+          body: 'You successfully signed up to donate ${request.bloodType} blood!',
+        );
+
+        // Save inbox notification for the receiver
+        notificationRepo.createNotification(
+          NotificationModel(
+            id: '', // Firestore auto-generates ID
+            userId: request.requesterId,
+            title: 'Donor Found!',
+            message: '${currentUser.name} has accepted your request for ${request.bloodType} blood.',
+            isRead: false,
+            createdAt: DateTime.now(),
+            senderId: currentUser.uid,
+            senderName: currentUser.name,
+            type: 'donor_found',
+            requestId: request.id,
+          ),
+        );
+
+        // Save the donation transaction
+        final donation = Donation(
+          id: '',
+          donorId: currentUser.uid,
+          hospital: request.hospital,
+          patientName: request.patientName,
+          bloodType: request.bloodType,
+          status: 'Accepted',
+          donationDate: DateTime.now(),
+        );
+
+        donationRepo.createDonation(donation);
+
+        // Remove the emergency request from the list
+        requestRepo.deleteRequest(request.id);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Thank you! You are donating to ${request.patientName}.'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Sorry, your blood type (${currentUser.bloodType}) is not compatible.'),
+            backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      }
+    });
+  }
 }
+
 
 class _BloodVial extends StatelessWidget {
   final double fillLevel;
@@ -784,8 +973,8 @@ class _BloodVial extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 26, // Slightly wider for better visibility
-      height: 55, // Slightly taller
+      width: 12, // Ultra small width
+      height: 28, // Ultra small height
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: const BorderRadius.vertical(
@@ -821,7 +1010,7 @@ class _BloodVial extends StatelessWidget {
               duration: const Duration(milliseconds: 1200),
               curve: Curves.elasticOut, // Elastic effect for "liquid" feel
               width: double.infinity,
-              height: 55 * fillLevel,
+              height: 28 * fillLevel,
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
@@ -845,8 +1034,8 @@ class _BloodVial extends StatelessWidget {
               top: 4,
               left: 4,
               child: Container(
-                width: 4,
-                height: 40,
+                width: 1.5,
+                height: 20,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
@@ -863,7 +1052,7 @@ class _BloodVial extends StatelessWidget {
             // Top rim of liquid
             if (fillLevel > 0.05)
               Positioned(
-                bottom: (55 * fillLevel) - 2,
+                bottom: (28 * fillLevel) - 1.5,
                 left: 0,
                 right: 0,
                 child: Container(

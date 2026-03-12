@@ -47,4 +47,8 @@ class RequestRepository {
   Future<void> updateRequestStatus(String requestId, String status) async {
     await _requests.doc(requestId).update({'status': status});
   }
+
+  Future<void> deleteRequest(String requestId) async {
+    await _requests.doc(requestId).delete();
+  }
 }

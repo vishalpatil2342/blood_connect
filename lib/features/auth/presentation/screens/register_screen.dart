@@ -26,12 +26,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   String selectedBloodType = 'A+';
   final List<String> bloodTypes = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
   final TextEditingController passwordController = TextEditingController();
+  final TextEditingController phoneController = TextEditingController(text: '+91 ');
 
   @override
   void dispose() {
     nameController.dispose();
     emailController.dispose();
     passwordController.dispose();
+    phoneController.dispose();
     super.dispose();
   }
 
@@ -43,14 +45,21 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       return;
     }
 
+    final rawName = nameController.text.trim();
+    final capitalizedName = rawName.split(' ').map((word) {
+      if (word.isEmpty) return word;
+      return word[0].toUpperCase() + word.substring(1).toLowerCase();
+    }).join(' ');
+
     await ref
         .read(authControllerProvider.notifier)
         .signUp(
           email: emailController.text.trim(),
           password: passwordController.text.trim(),
-          name: nameController.text.trim(),
+          name: capitalizedName,
           location: selectedCity,
           bloodType: selectedBloodType,
+          phone: phoneController.text.trim(),
         );
 
     if (!mounted) return;
@@ -135,7 +144,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         children: [
                           CustomTextField(
                             controller: nameController,
-                            hint: 'Rohit Pratap',
+                            hint: 'John Doe',
                             prefixIcon: Icons.person_outline,
                           ),
                           const SizedBox(height: 16),
@@ -144,6 +153,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             hint: 'Email Address',
                             keyboardType: TextInputType.emailAddress,
                             prefixIcon: Icons.email_outlined,
+                          ),
+                          const SizedBox(height: 16),
+                          CustomTextField(
+                            controller: phoneController,
+                            hint: '+91 98765 43210',
+                            keyboardType: TextInputType.phone,
+                            prefixIcon: Icons.phone_android_outlined,
                           ),
                           const SizedBox(height: 16),
                           Container(
@@ -262,6 +278,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           Row(
                             children: [
                               Checkbox(
+                                activeColor: const Color(0xFFE60000),
+                                checkColor: Colors.white,
                                 value: _acceptTerms,
                                 onChanged: (value) {
                                   setState(() {
@@ -303,7 +321,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     Center(
                       child: RichText(
                         text: TextSpan(
-                          text: 'Already have an accout? ',
+                          text: 'Already have an account? ',
                           style: TextStyle(
                             color: Colors.grey[800],
                             fontSize: 13,

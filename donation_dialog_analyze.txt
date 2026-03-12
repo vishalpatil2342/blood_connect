@@ -1,0 +1,6 @@
+Analyzing blood_connect...                                      
+
+   info - 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre - lib\features\patient\presentation\screens\activity_screen.dart:469:17 - deprecated_member_use
+   info - Unnecessary use of multiple underscores - lib\features\patient\presentation\screens\activity_screen.dart:512:26 - unnecessary_underscores
+
+2 issues found. (ran in 6.9s)

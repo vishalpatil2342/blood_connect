@@ -22,7 +22,7 @@ final userProfileProvider = StreamProvider<UserModel?>((ref) {
       return ref.watch(donorRepositoryProvider).getUserProfile(user.uid);
     },
     loading: () => const Stream.empty(),
-    error: (_, __) => const Stream.empty(),
+    error: (error, stackTrace) => const Stream.empty(),
   );
 });
 
@@ -43,6 +43,7 @@ final compatibleEmergencyRequestsProvider = Provider<AsyncValue<List<BloodReques
           if (user == null) return AsyncValue.data(requests);
           
           final filtered = requests.where((request) {
+            // Second condition: The user must be compatible to donate
             return BloodCompatibility.canDonate(
               donorBloodType: user.bloodType,
               receiverBloodType: request.bloodType,

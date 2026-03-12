@@ -20,8 +20,19 @@ class BloodBankModel {
       hospitalName: map['hospitalName'] ?? '',
       location: map['location'] ?? '',
       inventory: map['inventory'] != null
-          ? Map<String, int>.from(map['inventory'])
-          : {'A+': 0, 'B+': 0, 'O+': 0, 'AB+': 0, 'A-': 0, 'B-': 0, 'O-': 0, 'AB-': 0},
+          ? (map['inventory'] as Map<String, dynamic>).map(
+              (key, value) => MapEntry(key, (value as num).toInt()),
+            )
+          : {
+              'A+': 0,
+              'B+': 0,
+              'O+': 0,
+              'AB+': 0,
+              'A-': 0,
+              'B-': 0,
+              'O-': 0,
+              'AB-': 0
+            },
     );
   }
 

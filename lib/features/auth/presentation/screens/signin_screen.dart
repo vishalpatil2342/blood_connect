@@ -119,7 +119,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                         CustomTextField(
                           controller: emailController,
                           prefixIcon: Icons.email_outlined,
-                          hint: 'emmanuelpriestley344@gmail.com',
+                          hint: 'email@example.com',
                           keyboardType: TextInputType.emailAddress,
                         ),
                         const SizedBox(height: 16),

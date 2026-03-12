@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:blood_connect/shared/widgets/custom_text_field.dart';
 import 'package:blood_connect/core/models/blood_request_model.dart';
-import 'package:blood_connect/features/patient/data/repositories/request_repository.dart';
 import 'package:blood_connect/core/providers/firebase_providers.dart';
 import 'package:blood_connect/features/patient/presentation/providers/data_providers.dart';
 import 'package:blood_connect/core/models/blood_bank_model.dart';
 import 'package:blood_connect/core/services/emergency_notification_service.dart';
+import 'package:blood_connect/features/patient/data/repositories/blood_bank_repository.dart';
 
 class CreateRequestScreen extends ConsumerStatefulWidget {
   const CreateRequestScreen({super.key});
@@ -68,22 +68,59 @@ class _CreateRequestScreenState extends ConsumerState<CreateRequestScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final request = BloodRequest(
-        id: '', // Firestore .add() generates ID.
-        patientName: patientName,
-        city: _selectedCity,
-        hospital: _selectedHospital!,
-        bloodType: _selectedBloodType,
-        mobile: mobile,
-        requesterId: user.uid,
-        status: 'pending',
-        createdAt: DateTime.now(),
+      final selectedBank = ref.read(nearbyBloodBanksProvider).value?.firstWhere(
+        (b) => b.hospitalName == _selectedHospital,
       );
 
-      await ref.read(requestRepositoryProvider).createRequest(request);
+      if (selectedBank == null) {
+        throw Exception("Selected hospital data not found.");
+      }
 
-      // Broadcast to compatible nearby donors
-      await ref.read(emergencyNotificationServiceProvider).broadcastEmergencyRequest(request);
+      final currentUnits = selectedBank.inventory[_selectedBloodType] ?? 0;
+
+      if (currentUnits == 0) {
+        // Trigger Emergency Notification Broadcast immediately
+        final emergencyRequest = BloodRequest(
+          id: '',
+          patientName: patientName,
+          city: _selectedCity,
+          hospital: _selectedHospital!,
+          bloodType: _selectedBloodType,
+          mobile: mobile,
+          requesterId: user.uid,
+          status: 'pending', // Pending since we are relying on donors now
+          createdAt: DateTime.now(),
+        );
+
+        await ref
+            .read(emergencyNotificationServiceProvider)
+            .saveAndBroadcastEmergencyRequest(emergencyRequest);
+
+        if (mounted) {
+          setState(() => _isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Bank out of stock. Emergency broadcast sent to donors!'),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 4),
+            ),
+          );
+          Navigator.pop(context); // Close the request screen
+        }
+        return; // Exit early
+      }
+
+      // If we have stock, deduct 1 unit directly via transaction
+      await ref.read(bloodBankRepositoryProvider).requestBlood(
+            bankId: selectedBank.id,
+            bloodType: _selectedBloodType,
+            units: 1, // Defaulting to 1 unit per request based on UI
+            patientName: patientName,
+            urgency: 'Normal', // Default urgency
+            location: _selectedCity,
+            requesterId: user.uid,
+            mobile: mobile,
+          );
 
       if (mounted) {
         setState(() => _isLoading = false);

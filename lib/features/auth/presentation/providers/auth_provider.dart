@@ -32,6 +32,7 @@ class AuthController extends AsyncNotifier<void> {
     required String name,
     required String location,
     required String bloodType,
+    required String phone,
   }) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() => _authRepository.createUserWithEmailAndPassword(
@@ -40,6 +41,7 @@ class AuthController extends AsyncNotifier<void> {
       name,
       location,
       bloodType,
+      phone,
     ));
   }
 

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:blood_connect/features/patient/presentation/providers/data_providers.dart';
 import 'package:blood_connect/core/constants/indian_cities.dart';
+import 'package:blood_connect/core/models/user_model.dart';
+import 'package:blood_connect/core/services/emergency_notification_service.dart';
 
 class FindDonorsScreen extends ConsumerWidget {
   const FindDonorsScreen({super.key});
@@ -70,11 +72,8 @@ class FindDonorsScreen extends ConsumerWidget {
 
                   return _buildDonorCard(
                     context: context,
-                    name: donor.name,
-                    location: donor.location,
-                    bloodType: donor.bloodType,
-                    imageUrl: donor.photoUrl,
-                    isAvailable: donor.isAvailableForDonation,
+                    ref: ref,
+                    donor: donor,
                   );
                 },
               );
@@ -203,11 +202,8 @@ class FindDonorsScreen extends ConsumerWidget {
 
   Widget _buildDonorCard({
     required BuildContext context,
-    required String name,
-    required String location,
-    required String bloodType,
-    required String imageUrl,
-    required bool isAvailable,
+    required WidgetRef ref,
+    required UserModel donor,
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
@@ -239,9 +235,9 @@ class FindDonorsScreen extends ConsumerWidget {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(16),
-                  child: imageUrl.isNotEmpty
+                  child: donor.photoUrl.isNotEmpty
                       ? Image.network(
-                          imageUrl,
+                          donor.photoUrl,
                           width: 80,
                           height: 80,
                           fit: BoxFit.cover,
@@ -271,7 +267,7 @@ class FindDonorsScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      name,
+                      donor.name,
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w900,
@@ -289,7 +285,7 @@ class FindDonorsScreen extends ConsumerWidget {
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
-                            location,
+                            donor.location,
                             style: TextStyle(
                               fontSize: 13,
                               color: Colors.grey.shade600,
@@ -309,12 +305,12 @@ class FindDonorsScreen extends ConsumerWidget {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: isAvailable
+                        color: donor.isAvailableForDonation
                             ? Colors.green.withValues(alpha: 0.1)
                             : Colors.red.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: isAvailable
+                          color: donor.isAvailableForDonation
                               ? Colors.green.withValues(alpha: 0.2)
                               : Colors.red.withValues(alpha: 0.2),
                         ),
@@ -326,17 +322,17 @@ class FindDonorsScreen extends ConsumerWidget {
                             width: 8,
                             height: 8,
                             decoration: BoxDecoration(
-                              color: isAvailable ? Colors.green : Colors.red,
+                              color: donor.isAvailableForDonation ? Colors.green : Colors.red,
                               shape: BoxShape.circle,
                             ),
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            isAvailable ? 'Available Now' : 'Not Available',
+                            donor.isAvailableForDonation ? 'Available Now' : 'Not Available',
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w800,
-                              color: isAvailable ? Colors.green : Colors.red,
+                              color: donor.isAvailableForDonation ? Colors.green : Colors.red,
                             ),
                           ),
                         ],
@@ -364,7 +360,7 @@ class FindDonorsScreen extends ConsumerWidget {
                     const Icon(Icons.water_drop, color: Color(0xFFFF2A5F), size: 24),
                     const SizedBox(height: 2),
                     Text(
-                      bloodType,
+                      donor.bloodType,
                       style: const TextStyle(
                         color: Color(0xFFFF2A5F),
                         fontWeight: FontWeight.w900,
@@ -383,18 +379,47 @@ class FindDonorsScreen extends ConsumerWidget {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () {
-                // Future implementation: Navigate to request creation with this donor
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Requesting $bloodType blood from $name...'),
-                    backgroundColor: const Color(0xFFFF2A5F),
-                  ),
-                );
-              },
+              onPressed: donor.isAvailableForDonation
+                  ? () async {
+                      final currentUser = ref.read(userProfileProvider).value;
+                      if (currentUser == null) return;
+
+                      try {
+                        await ref.read(emergencyNotificationServiceProvider).notifySpecificDonor(
+                              donorId: donor.uid,
+                              senderId: currentUser.uid,
+                              senderName: currentUser.name,
+                              phoneNumber: currentUser.phone,
+                              bloodType: donor.bloodType,
+                            );
+
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Notification sent to ${donor.name}!'),
+                              backgroundColor: Colors.green,
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Error: Could not notify donor.'),
+                              backgroundColor: Colors.red,
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        }
+                      }
+                    }
+                  : null,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFFF2A5F).withValues(alpha: 0.1),
                 foregroundColor: const Color(0xFFFF2A5F),
+                disabledBackgroundColor: Colors.grey.shade100,
+                disabledForegroundColor: Colors.grey.shade400,
                 elevation: 0,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
@@ -405,7 +430,7 @@ class FindDonorsScreen extends ConsumerWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.volunteer_activism_rounded, size: 20),
-                  const SizedBox(width: 8),
+                  SizedBox(width: 8),
                   Text(
                     'Request Blood',
                     style: TextStyle(
@@ -709,7 +734,7 @@ class _FilterDonorsSheetState extends ConsumerState<_FilterDonorsSheet> {
                 ),
                 Switch(
                   value: _isAvailableOnly,
-                  activeColor: const Color(0xFFFF2A5F),
+                  activeThumbColor: const Color(0xFFFF2A5F),
                   onChanged: (value) {
                     setState(() {
                       _isAvailableOnly = value;

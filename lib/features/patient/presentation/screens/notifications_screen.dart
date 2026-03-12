@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:blood_connect/features/patient/presentation/providers/data_providers.dart';
 import 'package:blood_connect/core/models/notification_model.dart';
 import 'package:blood_connect/features/patient/data/repositories/notification_repository.dart';
+import 'package:blood_connect/core/services/emergency_notification_service.dart';
 
 class NotificationsScreen extends ConsumerWidget {
   const NotificationsScreen({super.key});
@@ -135,12 +136,69 @@ class NotificationsScreen extends ConsumerWidget {
                       color: Colors.grey.shade700,
                     ),
                   ),
+                  if ((notification.type == 'donor_found' || notification.type == 'direct_request') && !notification.isRead) ...[
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () => _handleAction(ref, notification, true),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                            ),
+                            child: const Text('Accept', style: TextStyle(fontWeight: FontWeight.bold)),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => _handleAction(ref, notification, false),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.red,
+                              side: const BorderSide(color: Colors.red),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                            ),
+                            child: const Text('Reject', style: TextStyle(fontWeight: FontWeight.bold)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Future<void> _handleAction(WidgetRef ref, NotificationModel notification, bool isAccept) async {
+    final repo = ref.read(notificationRepositoryProvider);
+    final notificationService = ref.read(emergencyNotificationServiceProvider);
+    final currentUser = ref.read(userProfileProvider).value;
+
+    if (currentUser == null || notification.senderId == null) return;
+
+    // 1. Mark current notification as read
+    await repo.markAsRead(notification.id);
+
+    // 2. Send reciprocal notification back to the donor
+    final message = isAccept 
+        ? '${currentUser.name} has accepted your donation offer! Please check your messages or contact them directly.'
+        : 'Sorry, ${currentUser.name} has declined your donation offer for now. Thank you for your willingness to help!';
+
+    await notificationService.notifyDonationAction(
+      recipientId: notification.senderId!,
+      senderId: currentUser.uid,
+      senderName: currentUser.name,
+      message: message,
+      isAccept: isAccept,
     );
   }
 }

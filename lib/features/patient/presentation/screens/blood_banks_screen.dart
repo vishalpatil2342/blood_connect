@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:blood_connect/features/patient/presentation/providers/data_providers.dart';
 import 'package:blood_connect/core/models/blood_bank_model.dart';
+import 'package:blood_connect/core/models/blood_request_model.dart';
 import 'package:blood_connect/features/patient/presentation/screens/add_blood_bank_screen.dart';
 import 'package:blood_connect/features/patient/data/repositories/blood_bank_repository.dart';
+import 'package:blood_connect/core/providers/firebase_providers.dart';
 import 'package:blood_connect/core/services/emergency_notification_service.dart';
 
 class BloodBanksScreen extends ConsumerWidget {
@@ -308,7 +310,55 @@ class BloodBanksScreen extends ConsumerWidget {
               final name = nameController.text.trim();
               if (name.isEmpty) return;
 
+              final currentUnits = bank.inventory[type] ?? 0;
+              final user = ref.read(firebaseAuthProvider).currentUser;
+              final userProfile = ref.read(userProfileProvider).value;
+
+              if (user == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Please log in first')),
+                );
+                return;
+              }
+
               Navigator.pop(context); // Close dialog
+
+              if (currentUnits == 0) {
+                // Already out of stock, create emergency request
+                final emergencyRequest = BloodRequest(
+                  id: '',
+                  patientName: name,
+                  city: bank.location,
+                  hospital: bank.hospitalName,
+                  bloodType: type,
+                  mobile: userProfile?.phone ?? '',
+                  requesterId: user.uid,
+                  status: 'pending',
+                  createdAt: DateTime.now(),
+                );
+
+                try {
+                  await ref
+                      .read(emergencyNotificationServiceProvider)
+                      .saveAndBroadcastEmergencyRequest(emergencyRequest);
+
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Bank out of stock. Emergency broadcast sent to donors!'),
+                        backgroundColor: Colors.orange,
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Failed to broadcast: $e')),
+                    );
+                  }
+                }
+                return;
+              }
 
               try {
                 final remainingUnits =
@@ -319,6 +369,8 @@ class BloodBanksScreen extends ConsumerWidget {
                           patientName: name,
                           urgency: 'Emergency',
                           location: bank.location,
+                          requesterId: user.uid,
+                          mobile: userProfile?.phone ?? '',
                         );
 
                 if (remainingUnits == 0) {

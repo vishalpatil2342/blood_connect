@@ -4,6 +4,7 @@ class Donation {
   final String id;
   final String donorId;
   final String? requestId; // Optional, if they donated responding to a specific request
+  final String? patientName; // Optional, if they donated to a direct patient
   final String hospital;
   final String bloodType;
   final String status; // 'booked', 'completed', 'cancelled'
@@ -13,6 +14,7 @@ class Donation {
     required this.id,
     required this.donorId,
     this.requestId,
+    this.patientName,
     required this.hospital,
     required this.bloodType,
     required this.status,
@@ -24,6 +26,7 @@ class Donation {
       id: id,
       donorId: map['donorId'] ?? '',
       requestId: map['requestId'],
+      patientName: map['patientName'],
       hospital: map['hospital'] ?? '',
       bloodType: map['bloodType'] ?? '',
       status: map['status'] ?? 'completed',
@@ -35,6 +38,7 @@ class Donation {
     return {
       'donorId': donorId,
       if (requestId != null) 'requestId': requestId,
+      if (patientName != null) 'patientName': patientName,
       'hospital': hospital,
       'bloodType': bloodType,
       'status': status,

@@ -7,6 +7,10 @@ class NotificationModel {
   final String message;
   final bool isRead;
   final DateTime createdAt;
+  final String? senderId;
+  final String? senderName;
+  final String? type; // 'emergency', 'donor_found', 'offer_accepted', 'offer_declined'
+  final String? requestId;
 
   NotificationModel({
     required this.id,
@@ -15,6 +19,10 @@ class NotificationModel {
     required this.message,
     required this.isRead,
     required this.createdAt,
+    this.senderId,
+    this.senderName,
+    this.type,
+    this.requestId,
   });
 
   factory NotificationModel.fromMap(Map<String, dynamic> map, String id) {
@@ -25,6 +33,10 @@ class NotificationModel {
       message: map['message'] ?? '',
       isRead: map['isRead'] ?? false,
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      senderId: map['senderId'],
+      senderName: map['senderName'],
+      type: map['type'],
+      requestId: map['requestId'],
     );
   }
 
@@ -35,6 +47,10 @@ class NotificationModel {
       'message': message,
       'isRead': isRead,
       'createdAt': FieldValue.serverTimestamp(),
+      'senderId': senderId,
+      'senderName': senderName,
+      'type': type,
+      'requestId': requestId,
     };
   }
 }

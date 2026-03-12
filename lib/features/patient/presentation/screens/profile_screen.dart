@@ -4,6 +4,8 @@ import 'package:blood_connect/features/auth/presentation/providers/auth_provider
 import 'package:blood_connect/features/patient/presentation/providers/data_providers.dart';
 import 'package:blood_connect/features/auth/presentation/screens/signin_screen.dart';
 import 'package:blood_connect/features/patient/presentation/screens/edit_profile_screen.dart';
+import 'package:blood_connect/features/patient/data/repositories/donor_repository.dart';
+import 'package:blood_connect/core/models/user_model.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -13,7 +15,6 @@ class ProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
-  bool isAvailableForDonate = true;
 
   @override
   Widget build(BuildContext context) {
@@ -59,7 +60,72 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFFE60000))),
         error: (err, stack) => Center(child: Text('Error loading profile: $err')),
         data: (user) {
-          if (user == null) return const Center(child: Text('User not found'));
+          if (user == null) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.account_circle_outlined,
+                        size: 80,
+                        color: Color(0xFFE60000),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    const Text(
+                      'Profile Not Found',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'We couldn\'t find your profile data. You might need to sign out and try again or contact support.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.black54,
+                        height: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () => _handleLogout(context),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFE60000),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: const Text(
+                          'Sign Out',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
 
           return SingleChildScrollView(
             child: Padding(
@@ -143,11 +209,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   _buildToggleItem(
                     icon: Icons.volunteer_activism_outlined,
                     title: 'Available for Donate',
-                    value: isAvailableForDonate,
-                    onChanged: (val) {
-                      setState(() {
-                        isAvailableForDonate = val;
-                      });
+                    value: user.isAvailableForDonation,
+                    onChanged: (val) async {
+                      final updatedUser = UserModel(
+                        uid: user.uid,
+                        name: user.name,
+                        email: user.email,
+                        phone: user.phone,
+                        bloodType: user.bloodType,
+                        location: user.location,
+                        photoUrl: user.photoUrl,
+                        createdAt: user.createdAt,
+                        authProvider: user.authProvider,
+                        isAvailableForDonation: val,
+                      );
+                      await ref.read(donorRepositoryProvider).updateUserProfile(updatedUser);
                     },
                   ),
                   const SizedBox(height: 16),
@@ -292,26 +368,57 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: Colors.white,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 20),
-        title: const Text(
-          'Sign Out',
-          style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        contentPadding: const EdgeInsets.all(24),
+        title: const Column(
+          children: [
+            Icon(Icons.logout_rounded, color: Color(0xFFE60000), size: 48),
+            SizedBox(height: 16),
+            Text(
+              'Sign Out',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black87),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
         content: const Text(
           'Are you sure you want to sign out?',
-          style: TextStyle(fontSize: 17),
+          style: TextStyle(fontSize: 16, color: Colors.black54),
+          textAlign: TextAlign.center,
         ),
+        actionsAlignment: MainAxisAlignment.center,
+        actionsPadding: const EdgeInsets.only(bottom: 24, left: 24, right: 24),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel', style: TextStyle(fontSize: 16)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text(
-              'Sign Out',
-              style: TextStyle(color: Colors.red, fontSize: 16, fontWeight: FontWeight.bold),
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text('Cancel', style: TextStyle(fontSize: 16, color: Colors.grey, fontWeight: FontWeight.bold)),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFE60000),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text(
+                    'Sign Out',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
