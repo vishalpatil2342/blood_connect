@@ -13,7 +13,8 @@ class PhoneLoginScreen extends ConsumerStatefulWidget {
 }
 
 class _PhoneLoginScreenState extends ConsumerState<PhoneLoginScreen> {
-  final TextEditingController phoneController = TextEditingController();
+  final TextEditingController phoneController =
+      TextEditingController(text: '+91 ');
 
   Future<void> sendOtp() async {
     String phone = phoneController.text.trim();

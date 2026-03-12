@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:blood_connect/features/patient/presentation/providers/data_providers.dart';
 import 'package:blood_connect/core/models/blood_bank_model.dart';
+import 'package:blood_connect/features/patient/presentation/screens/add_blood_bank_screen.dart';
+import 'package:blood_connect/features/patient/data/repositories/blood_bank_repository.dart';
+import 'package:blood_connect/core/services/emergency_notification_service.dart';
 
 class BloodBanksScreen extends ConsumerWidget {
   const BloodBanksScreen({super.key});
@@ -24,7 +27,17 @@ class BloodBanksScreen extends ConsumerWidget {
             fontSize: 20,
           ),
         ),
-        automaticallyImplyLeading: false, 
+        automaticallyImplyLeading: false,
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const AddBloodBankScreen()),
+          );
+        },
+        backgroundColor: const Color(0xFFE60000),
+        child: const Icon(Icons.add, color: Colors.white, size: 28),
       ),
       body: SafeArea(
         child: bloodBanksAsync.when(
@@ -32,21 +45,24 @@ class BloodBanksScreen extends ConsumerWidget {
             child: CircularProgressIndicator(color: Color(0xFFE60000)),
           ),
           error: (error, stack) => Center(
-            child: Text('Error loading blood banks: $error', style: const TextStyle(color: Colors.black87)),
+            child: Text('Error loading blood banks: $error',
+                style: const TextStyle(color: Colors.black87)),
           ),
           data: (bloodBanks) {
             if (bloodBanks.isEmpty) {
               return const Center(
-                child: Text('No blood banks found.', style: TextStyle(color: Colors.black87)),
+                child: Text('No blood banks found.',
+                    style: TextStyle(color: Colors.black87)),
               );
             }
             return ListView.separated(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
               itemCount: bloodBanks.length,
               separatorBuilder: (context, index) => const SizedBox(height: 20),
               itemBuilder: (context, index) {
                 final bank = bloodBanks[index];
-                return _buildBloodBankCard(bank);
+                return _buildBloodBankCard(context, ref, bank);
               },
             );
           },
@@ -55,7 +71,8 @@ class BloodBanksScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildBloodBankCard(BloodBankModel bank) {
+  Widget _buildBloodBankCard(
+      BuildContext context, WidgetRef ref, BloodBankModel bank) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -82,7 +99,8 @@ class BloodBanksScreen extends ConsumerWidget {
                     color: const Color(0xFFFF2A5F).withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.local_hospital_rounded, color: Color(0xFFFF2A5F), size: 28),
+                  child: const Icon(Icons.local_hospital_rounded,
+                      color: Color(0xFFFF2A5F), size: 28),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -98,13 +116,42 @@ class BloodBanksScreen extends ConsumerWidget {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      Text(
-                        bank.location,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey.shade500,
-                          fontWeight: FontWeight.w500,
-                        ),
+                      Row(
+                        children: [
+                          const Icon(Icons.apartment_outlined,
+                              color: Colors.grey, size: 16),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              bank.hospitalName,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey.shade600,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          const Icon(Icons.location_on_outlined,
+                              color: Colors.grey, size: 16),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              bank.location,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey.shade600,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -112,9 +159,9 @@ class BloodBanksScreen extends ConsumerWidget {
               ],
             ),
           ),
-          
+
           Divider(height: 1, color: Colors.grey.shade100),
-          
+
           // Inventory
           Padding(
             padding: const EdgeInsets.all(20.0),
@@ -122,25 +169,29 @@ class BloodBanksScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Available Units',
+                  'Available Blood Stock',
                   style: TextStyle(
                     fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey.shade700,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.grey.shade800,
                   ),
                 ),
                 const SizedBox(height: 16),
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: bank.inventory.entries.map((entry) {
-                    return _buildBloodTypeBadge(entry.key, entry.value);
-                  }).toList(),
+                Center(
+                  child: Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    alignment: WrapAlignment.center,
+                    children: bank.inventory.entries.map((entry) {
+                      return _buildBloodTypeBadge(
+                          context, ref, bank, entry.key, entry.value);
+                    }).toList(),
+                  ),
                 ),
               ],
             ),
           ),
-          
+
           // Action Button
           Container(
             width: double.infinity,
@@ -169,35 +220,141 @@ class BloodBanksScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildBloodTypeBadge(String type, int count) {
-    return Container(
-      width: 60,
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      decoration: BoxDecoration(
-        color: count > 0 ? const Color(0xFFFF2A5F).withValues(alpha: 0.05) : Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: count > 0 ? const Color(0xFFFF2A5F).withValues(alpha: 0.2) : Colors.transparent,
+  Widget _buildBloodTypeBadge(BuildContext context, WidgetRef ref,
+      BloodBankModel bank, String type, int count) {
+    bool hasStock = count > 0;
+
+    return GestureDetector(
+      onTap: hasStock ? () => _showRequestDialog(context, ref, bank, type) : null,
+      child: Container(
+        width: 65,
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: hasStock ? Colors.white : Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: const Color(0xFFE60000), // Red Outline
+            width: 1.5,
+          ),
+          boxShadow: hasStock
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFFFF2A5F).withValues(alpha: 0.1),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  )
+                ]
+              : null,
+        ),
+        child: Column(
+          children: [
+            Text(
+              type,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w900,
+                color:
+                    hasStock ? const Color(0xFFE60000) : Colors.grey.shade400,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '$count Units',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: hasStock ? const Color(0xFFE60000) : Colors.grey.shade500,
+              ),
+            ),
+          ],
         ),
       ),
-      child: Column(
-        children: [
-          Text(
-            type,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: count > 0 ? const Color(0xFFFF2A5F) : Colors.grey.shade400,
+    );
+  }
+
+  void _showRequestDialog(
+      BuildContext context, WidgetRef ref, BloodBankModel bank, String type) {
+    final nameController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Request $type Blood',
+            style: const TextStyle(fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Requesting from ${bank.name}',
+                style: const TextStyle(fontSize: 14, color: Colors.grey)),
+            const SizedBox(height: 20),
+            TextField(
+              controller: nameController,
+              decoration: InputDecoration(
+                hintText: 'Patient Name',
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
             ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
           ),
-          const SizedBox(height: 4),
-          Text(
-            count.toString(),
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-              color: count > 0 ? Colors.black87 : Colors.grey.shade400,
+          ElevatedButton(
+            onPressed: () async {
+              final name = nameController.text.trim();
+              if (name.isEmpty) return;
+
+              Navigator.pop(context); // Close dialog
+
+              try {
+                final remainingUnits =
+                    await ref.read(bloodBankRepositoryProvider).requestBlood(
+                          bankId: bank.id,
+                          bloodType: type,
+                          units: 1,
+                          patientName: name,
+                          urgency: 'Emergency',
+                          location: bank.location,
+                        );
+
+                if (remainingUnits == 0) {
+                  // Trigger notification
+                  await ref
+                      .read(emergencyNotificationServiceProvider)
+                      .notifyBankStockZero(bank, type);
+                }
+
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                          'Emergency request submitted! $remainingUnits units remaining.'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error: ${e.toString()}'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFE60000),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
             ),
+            child: const Text('Request 1 Unit'),
           ),
         ],
       ),

@@ -2,6 +2,7 @@ import 'package:blood_connect/features/auth/presentation/screens/splash_screen.d
 import 'package:blood_connect/features/auth/presentation/screens/register_screen.dart';
 import 'package:blood_connect/features/patient/presentation/screens/home_screen.dart';
 import 'package:blood_connect/features/auth/presentation/providers/auth_provider.dart';
+import 'package:blood_connect/core/providers/splash_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -17,8 +18,8 @@ class BloodConnectApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // 1. Watch the auth state directly
     final authState = ref.watch(authStateProvider);
+    final splashFinished = ref.watch(splashFinishedProvider);
 
     return MaterialApp(
       title: 'Blood Connect',
@@ -41,18 +42,19 @@ class BloodConnectApp extends ConsumerWidget {
           ),
         ),
       ),
-      // 2. Declaratively set the home route
-      home: authState.when(
-        data: (user) {
-          if (user != null) {
-            return const HomeScreen();
-          } else {
-            return const RegisterScreen();
-          }
-        },
-        loading: () => const SplashScreen(), // Shows while Firebase checks status
-        error: (error, stack) => const RegisterScreen(), // Fallback
-      ),
+      home: !splashFinished 
+          ? const SplashScreen() 
+          : authState.when(
+              data: (user) {
+                if (user != null) {
+                  return const HomeScreen();
+                } else {
+                  return const RegisterScreen();
+                }
+              },
+              loading: () => const SplashScreen(),
+              error: (error, stack) => const RegisterScreen(),
+            ),
     );
   }
-}
+}

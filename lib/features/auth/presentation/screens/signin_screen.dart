@@ -1,7 +1,6 @@
 import 'package:blood_connect/features/auth/presentation/screens/forgot_password_screen.dart';
 import 'package:blood_connect/features/patient/presentation/screens/home_screen.dart';
 import 'package:blood_connect/features/auth/presentation/screens/register_screen.dart';
-import 'package:blood_connect/features/auth/presentation/screens/phone_login_screen.dart';
 import 'package:blood_connect/shared/widgets/custom_text_field.dart';
 import 'package:blood_connect/shared/widgets/red_background_clipper.dart';
 import 'package:blood_connect/features/auth/presentation/providers/auth_provider.dart';
@@ -97,7 +96,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                     "Hello! Welcome Back",
                     style: TextStyle(fontSize: 16, color: Colors.white70),
                   ),
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 70),
 
                   // 3. The White Form Container
                   Container(
@@ -204,30 +203,8 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 30),
-                  
-
-                  
-                  // Phone Number Login Button
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: Colors.black87,
-                      side: BorderSide(color: Colors.grey[300]!),
-                      minimumSize: const Size(double.infinity, 50),
-                    ),
-                    icon: const Icon(Icons.phone_android, size: 24, color: Color(0xFFff1818)),
-                    label: const Text("Sign in with Phone Number"),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const PhoneLoginScreen(),
-                        ),
-                      );
-                    },
-                  ),
                   const SizedBox(height: 20),
+
                 ],
               ),
             ),

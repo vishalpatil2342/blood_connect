@@ -3,7 +3,6 @@
 // ==========================================
 import 'package:blood_connect/features/auth/presentation/screens/signin_screen.dart';
 import 'package:blood_connect/features/patient/presentation/screens/home_screen.dart';
-import 'package:blood_connect/features/auth/presentation/screens/phone_login_screen.dart';
 import 'package:blood_connect/shared/widgets/custom_text_field.dart';
 import 'package:blood_connect/shared/widgets/red_background_clipper.dart';
 import 'package:blood_connect/core/constants/indian_cities.dart';
@@ -24,14 +23,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   String selectedCity = IndianCities.locations.first;
-  final TextEditingController bloodTypeController = TextEditingController();
+  String selectedBloodType = 'A+';
+  final List<String> bloodTypes = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
   final TextEditingController passwordController = TextEditingController();
 
   @override
   void dispose() {
     nameController.dispose();
     emailController.dispose();
-    bloodTypeController.dispose();
     passwordController.dispose();
     super.dispose();
   }
@@ -51,7 +50,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           password: passwordController.text.trim(),
           name: nameController.text.trim(),
           location: selectedCity,
-          bloodType: bloodTypeController.text.trim(),
+          bloodType: selectedBloodType,
         );
 
     if (!mounted) return;
@@ -136,7 +135,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         children: [
                           CustomTextField(
                             controller: nameController,
-                            hint: 'Emmanuel Priestl',
+                            hint: 'Rohit Pratap',
                             prefixIcon: Icons.person_outline,
                           ),
                           const SizedBox(height: 16),
@@ -200,10 +199,57 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             ),
                           ),
                           const SizedBox(height: 16),
-                          CustomTextField(
-                            controller: bloodTypeController,
-                            hint: 'Blood Type (e.g. O+)',
-                            prefixIcon: Icons.water_drop_outlined,
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF7F8FA),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: Colors.transparent),
+                            ),
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<String>(
+                                value: selectedBloodType,
+                                isExpanded: true,
+                                icon: Icon(
+                                  Icons.keyboard_arrow_down,
+                                  color: Colors.grey.shade600,
+                                ),
+                                items: bloodTypes.map((
+                                  String type,
+                                ) {
+                                  return DropdownMenuItem<String>(
+                                    value: type,
+                                    child: Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.water_drop_outlined,
+                                          size: 20,
+                                          color: Color(0xFFE60000),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            type,
+                                            style: const TextStyle(
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w500,
+                                              color: Colors.black87,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }).toList(),
+                                onChanged: (val) {
+                                  setState(() => selectedBloodType = val!);
+                                },
+                              ),
+                            ),
                           ),
                           const SizedBox(height: 16),
                           CustomTextField(
@@ -284,34 +330,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       ),
                     ),
 
-                    const SizedBox(height: 16),
-
-                    // Phone Number Login Button
-                    ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: Colors.black87,
-                        side: BorderSide(color: Colors.grey[300]!),
-                        minimumSize: const Size(
-                          double.infinity,
-                          50,
-                        ), // Match width of other elements if desired
-                      ),
-                      icon: const Icon(
-                        Icons.phone_android,
-                        size: 24,
-                        color: Color(0xFFff1818),
-                      ),
-                      label: const Text("Sign up with Phone Number"),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const PhoneLoginScreen(),
-                          ),
-                        );
-                      },
-                    ),
                   ],
                 ),
               ),

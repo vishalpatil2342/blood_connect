@@ -10,6 +10,7 @@ class UserModel {
   final String photoUrl;
   final DateTime createdAt;
   final String authProvider;
+  final bool isAvailableForDonation;
 
   UserModel({
     required this.uid,
@@ -21,6 +22,7 @@ class UserModel {
     required this.photoUrl,
     required this.createdAt,
     required this.authProvider,
+    this.isAvailableForDonation = true,
   });
 
   factory UserModel.fromMap(Map<String, dynamic> map, String uid) {
@@ -34,6 +36,7 @@ class UserModel {
       photoUrl: map['photoUrl'] ?? '',
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       authProvider: map['authProvider'] ?? 'email',
+      isAvailableForDonation: map['isAvailableForDonation'] ?? true,
     );
   }
 
@@ -47,6 +50,7 @@ class UserModel {
       'photoUrl': photoUrl,
       'createdAt': FieldValue.serverTimestamp(),
       'authProvider': authProvider,
+      'isAvailableForDonation': isAvailableForDonation,
     };
   }
 }

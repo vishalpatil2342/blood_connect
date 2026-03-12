@@ -43,7 +43,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
             widget.label!,
             style: const TextStyle(
               fontSize: 14,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.bold,
               color: Colors.black87,
             ),
           ),
@@ -54,12 +54,12 @@ class _CustomTextFieldState extends State<CustomTextField> {
           obscureText: _obscureText,
           keyboardType: widget.keyboardType,
           maxLines: widget.maxLines,
-          style: const TextStyle(fontSize: 16),
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Colors.black87),
           decoration: InputDecoration(
             hintText: widget.hint,
-            hintStyle: TextStyle(color: Colors.grey[500], fontSize: 15),
+            hintStyle: TextStyle(color: Colors.grey[500], fontSize: 15, fontWeight: FontWeight.w500),
             filled: true,
-            fillColor: Colors.grey[100],
+            fillColor: Colors.grey[50],
             prefixIcon: Icon(widget.prefixIcon, color: Colors.grey[600], size: 20),
             suffixIcon: widget.isPassword
                 ? IconButton(
@@ -75,13 +75,17 @@ class _CustomTextFieldState extends State<CustomTextField> {
                     },
                   )
                 : null,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: Colors.grey.shade200),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: Colors.grey.shade200),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(16),
               borderSide: const BorderSide(color: Color(0xFFE60000), width: 1.5),
             ),
           ),

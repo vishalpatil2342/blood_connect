@@ -4,7 +4,9 @@ import 'package:blood_connect/shared/widgets/custom_text_field.dart';
 import 'package:blood_connect/core/models/blood_request_model.dart';
 import 'package:blood_connect/features/patient/data/repositories/request_repository.dart';
 import 'package:blood_connect/core/providers/firebase_providers.dart';
-import 'package:blood_connect/core/constants/indian_cities.dart';
+import 'package:blood_connect/features/patient/presentation/providers/data_providers.dart';
+import 'package:blood_connect/core/models/blood_bank_model.dart';
+import 'package:blood_connect/core/services/emergency_notification_service.dart';
 
 class CreateRequestScreen extends ConsumerStatefulWidget {
   const CreateRequestScreen({super.key});
@@ -16,30 +18,38 @@ class CreateRequestScreen extends ConsumerStatefulWidget {
 
 class _CreateRequestScreenState extends ConsumerState<CreateRequestScreen> {
   final TextEditingController _patientNameController = TextEditingController();
-  final TextEditingController _hospitalController = TextEditingController();
-  final TextEditingController _bloodTypeController = TextEditingController();
-  final TextEditingController _mobileController = TextEditingController();
-  String _selectedCity = IndianCities.locations.first;
+  final TextEditingController _mobileController =
+      TextEditingController(text: '+91 ');
+  String _selectedCity = '';
+  String? _selectedHospital;
+  String _selectedBloodType = 'A+';
+  final List<String> _bloodGroups = [
+    'A+',
+    'A-',
+    'B+',
+    'B-',
+    'AB+',
+    'AB-',
+    'O+',
+    'O-',
+  ];
   bool _isLoading = false;
 
   @override
   void dispose() {
     _patientNameController.dispose();
-    _hospitalController.dispose();
-    _bloodTypeController.dispose();
     _mobileController.dispose();
     super.dispose();
   }
 
   Future<void> _submitRequest() async {
     final patientName = _patientNameController.text.trim();
-    final hospital = _hospitalController.text.trim();
-    final bloodType = _bloodTypeController.text.trim();
     final mobile = _mobileController.text.trim();
 
     if (patientName.isEmpty ||
-        hospital.isEmpty ||
-        bloodType.isEmpty ||
+        _selectedHospital == null ||
+        _selectedHospital!.isEmpty ||
+        _selectedBloodType.isEmpty ||
         mobile.isEmpty) {
       ScaffoldMessenger.of(
         context,
@@ -62,8 +72,8 @@ class _CreateRequestScreenState extends ConsumerState<CreateRequestScreen> {
         id: '', // Firestore .add() generates ID.
         patientName: patientName,
         city: _selectedCity,
-        hospital: hospital,
-        bloodType: bloodType,
+        hospital: _selectedHospital!,
+        bloodType: _selectedBloodType,
         mobile: mobile,
         requesterId: user.uid,
         status: 'pending',
@@ -71,6 +81,9 @@ class _CreateRequestScreenState extends ConsumerState<CreateRequestScreen> {
       );
 
       await ref.read(requestRepositoryProvider).createRequest(request);
+
+      // Broadcast to compatible nearby donors
+      await ref.read(emergencyNotificationServiceProvider).broadcastEmergencyRequest(request);
 
       if (mounted) {
         setState(() => _isLoading = false);
@@ -207,18 +220,11 @@ class _CreateRequestScreenState extends ConsumerState<CreateRequestScreen> {
                 prefixIcon: Icons.person_outline,
               ),
               const SizedBox(height: 16),
-              CustomTextField(
-                controller: _bloodTypeController,
-                hint: 'A+',
-                label: 'Blood Type',
-                prefixIcon: Icons.bloodtype_outlined,
-              ),
-              const SizedBox(height: 16),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'City / Location',
+                    'Blood Type',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
@@ -238,32 +244,29 @@ class _CreateRequestScreenState extends ConsumerState<CreateRequestScreen> {
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
-                        value: _selectedCity,
+                        value: _selectedBloodType,
                         isExpanded: true,
                         icon: Icon(
                           Icons.keyboard_arrow_down,
                           color: Colors.grey.shade600,
                         ),
-                        items: IndianCities.locations.map((String city) {
+                        items: _bloodGroups.map((String type) {
                           return DropdownMenuItem<String>(
-                            value: city,
+                            value: type,
                             child: Row(
                               children: [
                                 const Icon(
-                                  Icons.location_on_outlined,
+                                  Icons.bloodtype_outlined,
                                   size: 20,
                                   color: Color(0xFFE60000),
                                 ),
                                 const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    city,
-                                    style: const TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w500,
-                                      color: Colors.black87,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
+                                Text(
+                                  type,
+                                  style: const TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.black87,
                                   ),
                                 ),
                               ],
@@ -271,7 +274,7 @@ class _CreateRequestScreenState extends ConsumerState<CreateRequestScreen> {
                           );
                         }).toList(),
                         onChanged: (val) {
-                          setState(() => _selectedCity = val!);
+                          setState(() => _selectedBloodType = val!);
                         },
                       ),
                     ),
@@ -279,12 +282,7 @@ class _CreateRequestScreenState extends ConsumerState<CreateRequestScreen> {
                 ],
               ),
               const SizedBox(height: 16),
-              CustomTextField(
-                controller: _hospitalController,
-                hint: 'City General Hospital',
-                label: 'Hospital',
-                prefixIcon: Icons.local_hospital_outlined,
-              ),
+              _buildHospitalDropdown(),
               const SizedBox(height: 16),
               CustomTextField(
                 controller: _mobileController,
@@ -330,6 +328,172 @@ class _CreateRequestScreenState extends ConsumerState<CreateRequestScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildHospitalDropdown() {
+    final bloodBanksAsync = ref.watch(nearbyBloodBanksProvider);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Nearby Blood Bank',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 8),
+        bloodBanksAsync.when(
+          loading: () => Container(
+            height: 58,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.grey.shade200),
+            ),
+            child: const Center(
+              child: SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+          ),
+          error: (error, _) => Container(
+            height: 58,
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.grey.shade200),
+            ),
+            child: const Center(
+              child: Text(
+                'Error loading hospitals',
+                style: TextStyle(color: Colors.red),
+              ),
+            ),
+          ),
+          data: (List<BloodBankModel> bloodBanks) {
+            if (bloodBanks.isEmpty) {
+              return Container(
+                height: 58,
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.info_outline,
+                        size: 20, color: Colors.orange),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'No blood banks found in your city. Please check later.',
+                        style:
+                            TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            return Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 4,
+              ),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<BloodBankModel>(
+                  value: _selectedHospital != null
+                      ? bloodBanks.firstWhere((b) => b.hospitalName == _selectedHospital,
+                          orElse: () => bloodBanks.first)
+                      : null,
+                  hint: Row(
+                    children: [
+                      Icon(Icons.local_hospital_outlined,
+                          size: 20, color: Colors.grey.shade600),
+                      const SizedBox(width: 8),
+                      Text('Select Hospital',
+                          style: TextStyle(
+                              color: Colors.grey.shade500,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500)),
+                    ],
+                  ),
+                  isExpanded: true,
+                  icon: Icon(
+                    Icons.keyboard_arrow_down,
+                    color: Colors.grey.shade600,
+                  ),
+                  items: bloodBanks.map((BloodBankModel bank) {
+                    return DropdownMenuItem<BloodBankModel>(
+                      value: bank,
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.local_hospital_outlined,
+                            size: 20,
+                            color: Color(0xFFE60000),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  bank.hospitalName,
+                                  style: const TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.black87,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                Text(
+                                  '${bank.name} - ${bank.location}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (BloodBankModel? val) {
+                    if (val != null) {
+                      setState(() {
+                        _selectedHospital = val.hospitalName;
+                        _selectedCity = val.location;
+                      });
+                    }
+                  },
+                ),
+              ),
+            );
+          },
+        ),
+      ],
     );
   }
 }

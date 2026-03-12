@@ -11,6 +11,7 @@ import 'package:blood_connect/features/patient/presentation/screens/notification
 import 'package:blood_connect/features/patient/presentation/screens/find_donors_screen.dart';
 import 'package:blood_connect/features/patient/presentation/screens/create_request_screen.dart';
 import 'package:blood_connect/core/utils/blood_compatibility.dart';
+import 'package:blood_connect/core/models/blood_bank_model.dart';
 
 class HomeTab extends ConsumerWidget {
   const HomeTab({super.key});
@@ -73,38 +74,8 @@ class HomeTab extends ConsumerWidget {
                 
                 const SizedBox(height: 30),
 
-                // Blood Groups Categories
-                const Text(
-                  'Blood Groups',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                
-                // Horizontal List of Blood Groups
-                SizedBox(
-                  height: 90,
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
-                    physics: const AlwaysScrollableScrollPhysics(), // Ensures horizontal scroll isn't blocked by the vertical scroll
-                    padding: const EdgeInsets.only(bottom: 8), 
-                    // To show shadow naturally without being clipped
-                    clipBehavior: Clip.none,
-                    children: [
-                      _buildBloodGroupItem('A+', fillPercentage: 0.8),
-                      _buildBloodGroupItem('B+', fillPercentage: 0.4),
-                      _buildBloodGroupItem('AB+', fillPercentage: 1.0),
-                      _buildBloodGroupItem('O+', fillPercentage: 0.2),
-                      _buildBloodGroupItem('A-', fillPercentage: 0.6),
-                      _buildBloodGroupItem('B-', fillPercentage: 0.5),
-                      _buildBloodGroupItem('AB-', fillPercentage: 0.9),
-                      _buildBloodGroupItem('O-', fillPercentage: 0.1),
-                    ],
-                  ),
-                ),
+                // Nearby Blood Banks Section
+                _buildNearbyBloodBanks(context, ref),
 
               ],
             ),
@@ -136,7 +107,7 @@ class HomeTab extends ConsumerWidget {
                 const SizedBox(height: 16),
                 
                 // Urgent Request List
-                ref.watch(emergencyRequestsProvider).when(
+                ref.watch(compatibleEmergencyRequestsProvider).when(
                   loading: () => const Center(
                     child: Padding(
                       padding: EdgeInsets.all(24.0),
@@ -273,7 +244,6 @@ class HomeTab extends ConsumerWidget {
     );
   }
 
-  /// Floating, deeply rounded action cards
   Widget _buildActionCard({
     required IconData icon,
     required String title,
@@ -284,36 +254,28 @@ class HomeTab extends ConsumerWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
         decoration: BoxDecoration(
           color: backgroundColor,
-          borderRadius: BorderRadius.circular(28), 
+          borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: backgroundColor.withValues(alpha: 0.6),
-              blurRadius: 15,
-              spreadRadius: 2,
-              offset: const Offset(0, 6), 
+              color: backgroundColor.withValues(alpha: 0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start, 
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: iconColor, size: 28),
-            ),
-            const SizedBox(height: 16),
+            Icon(icon, color: iconColor, size: 28),
+            const SizedBox(height: 12),
             Text(
               title,
               style: TextStyle(
-                fontWeight: FontWeight.w800,
-                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
                 color: Colors.grey[800],
                 height: 1.2,
               ),
@@ -321,6 +283,257 @@ class HomeTab extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildNearbyBloodBanks(BuildContext context, WidgetRef ref) {
+    final userAsync = ref.watch(userProfileProvider);
+    final banksAsync = ref.watch(bloodBanksProvider);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Blood Banks Near You',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.5,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        userAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (err, _) => Text('Error: $err'),
+          data: (user) {
+            final userCity = user?.location ?? 'Unknown';
+            return banksAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (err, _) => Text('Error: $err'),
+              data: (banks) {
+                final nearbyBanks =
+                    banks.where((b) => b.location == userCity).toList();
+
+                if (nearbyBanks.isEmpty) {
+                  return Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.grey.shade100),
+                    ),
+                    child: Column(
+                      children: [
+                        Icon(Icons.location_off_outlined,
+                            size: 40, color: Colors.grey.shade400),
+                        const SizedBox(height: 12),
+                        Text(
+                          'No blood banks found in $userCity',
+                          style: TextStyle(color: Colors.grey.shade600),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                return SizedBox(
+                  height: 290, // Reverted and slightly increased to ensure no overflow
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: nearbyBanks.length,
+                    clipBehavior: Clip.none,
+                    itemBuilder: (context, index) {
+                      final bank = nearbyBanks[index];
+                      return _buildNearbyBankCard(bank);
+                    },
+                  ),
+                );
+              },
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildNearbyBankCard(BloodBankModel bank) {
+    return Container(
+      width: 410,
+      margin: const EdgeInsets.only(right: 20, bottom: 10, top: 5),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(32),
+        boxShadow: [
+          // Multi-layered shadow for depth
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+          BoxShadow(
+            color: const Color(0xFFE60000).withValues(alpha: 0.03),
+            blurRadius: 40,
+            offset: const Offset(0, 15),
+          ),
+        ],
+        border: Border.all(
+          color: Colors.grey.shade100,
+          width: 1.5,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      const Color(0xFFE60000).withValues(alpha: 0.15),
+                      const Color(0xFFE60000).withValues(alpha: 0.05),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.local_hospital_rounded,
+                  color: Color(0xFFE60000),
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      bank.hospitalName,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 17,
+                        letterSpacing: -0.5,
+                        color: Colors.black87,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      bank.name,
+                      style: TextStyle(
+                        color: Colors.grey.shade500,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'LIVE INVENTORY',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.5,
+                  color: Colors.grey.shade400,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: const BoxDecoration(
+                        color: Colors.green,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'UPDATED',
+                      style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.green.shade700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // Horizontal scroll for stock if too many, or wrap
+          Wrap(
+            spacing: 14,
+            runSpacing: 14,
+            children: bank.inventory.entries.map((entry) {
+              return _buildInventoryItem(entry.key, entry.value);
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInventoryItem(String type, int quantity) {
+    // Determine status color and fill
+    final bool isLow = quantity < 5;
+    final bool isEmpty = quantity == 0;
+    
+    // assuming 50 units is full for visualization
+    final double fillLevel = (quantity / 50.0).clamp(0.1, 1.0);
+
+    return Column(
+      children: [
+        _BloodVial(
+          fillLevel: fillLevel,
+          isEmpty: isEmpty,
+          color: isLow ? const Color(0xFFE60000) : const Color(0xFFE60000),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          type,
+          style: const TextStyle(
+            fontWeight: FontWeight.w900,
+            fontSize: 12,
+            color: Colors.black87,
+          ),
+        ),
+        Text(
+          '$quantity Units',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 10,
+            color: isLow ? const Color(0xFFE60000) : Colors.grey.shade500,
+          ),
+        ),
+      ],
     );
   }
 
@@ -555,98 +768,120 @@ class HomeTab extends ConsumerWidget {
       ),
     );
   }
-
-  /// Reusable Blood Group Item
-  Widget _buildBloodGroupItem(String type, {double fillPercentage = 1.0}) {
-    return Container(
-      width: 90, // Match the height of 90 defined in the SizedBox above it to make it perfectly square
-      margin: const EdgeInsets.only(right: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16), // Slightly less rounded so it screams "square shape"
-        border: Border.all(
-          color: const Color(0xFFFF2A5F).withValues(alpha: 0.5),
-          width: 1.5,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () {}, // Ready for state management filter changes
-          borderRadius: BorderRadius.circular(16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _PartiallyFilledBloodDrop(
-                fillPercentage: fillPercentage,
-                color: const Color(0xFFFF2A5F),
-                size: 28,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                type,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                  color: Colors.black87,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }
 
-class _PartiallyFilledBloodDrop extends StatelessWidget {
-  final double fillPercentage;
+class _BloodVial extends StatelessWidget {
+  final double fillLevel;
+  final bool isEmpty;
   final Color color;
-  final double size;
 
-  const _PartiallyFilledBloodDrop({
-    required this.fillPercentage,
+  const _BloodVial({
+    required this.fillLevel,
+    required this.isEmpty,
     required this.color,
-    required this.size,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        // Outline
-        Icon(Icons.water_drop_outlined, color: color, size: size),
-        // Filled portion
-        ClipRect(
-          clipper: _BottomFillClipper(fillPercentage),
-          child: Icon(Icons.water_drop, color: color, size: size),
+    return Container(
+      width: 26, // Slightly wider for better visibility
+      height: 55, // Slightly taller
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(6),
+          bottom: Radius.circular(14),
         ),
-      ],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+        border: Border.all(
+          color: Colors.grey.shade200,
+          width: 1.5,
+        ),
+      ),
+      child: ClipRRect(
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(4),
+          bottom: Radius.circular(12),
+        ),
+        child: Stack(
+          alignment: Alignment.bottomCenter,
+          children: [
+            // Background (Empty vial state)
+            Container(
+              color: Colors.grey.shade50,
+            ),
+            // Liquid Fill with smooth animation
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 1200),
+              curve: Curves.elasticOut, // Elastic effect for "liquid" feel
+              width: double.infinity,
+              height: 55 * fillLevel,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    color.withValues(alpha: 0.7),
+                    color,
+                  ],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: color.withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    spreadRadius: -2,
+                  ),
+                ],
+              ),
+            ),
+            // White shine for glass effect
+            Positioned(
+              top: 4,
+              left: 4,
+              child: Container(
+                width: 4,
+                height: 40,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.white.withValues(alpha: 0.4),
+                      Colors.white.withValues(alpha: 0.01),
+                    ],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            // Top rim of liquid
+            if (fillLevel > 0.05)
+              Positioned(
+                bottom: (55 * fillLevel) - 2,
+                left: 0,
+                right: 0,
+                child: Container(
+                  height: 2,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.3),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.white.withValues(alpha: 0.5),
+                        blurRadius: 2,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
-}
-
-class _BottomFillClipper extends CustomClipper<Rect> {
-  final double fillPercentage;
-
-  _BottomFillClipper(this.fillPercentage);
-
-  @override
-  Rect getClip(Size size) {
-    // fillPercentage = 1.0 means fully filled (top is 0)
-    // fillPercentage = 0.0 means fully empty (top is height)
-    final top = size.height * (1 - fillPercentage);
-    return Rect.fromLTRB(0, top, size.width, size.height);
-  }
-
-  @override
-  bool shouldReclip(covariant CustomClipper<Rect> oldClipper) => true;
 }

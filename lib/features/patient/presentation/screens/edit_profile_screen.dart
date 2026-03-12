@@ -15,13 +15,15 @@ class EditProfileScreen extends ConsumerStatefulWidget {
 
 class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   final TextEditingController nameController = TextEditingController();
-  final TextEditingController phoneController = TextEditingController();
+  final TextEditingController phoneController =
+      TextEditingController(text: '+91 ');
   
   String selectedBloodGroup = 'A+';
   String selectedLocation = IndianCities.locations.first;
   final List<String> bloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
   bool _isLoading = false;
   bool _isInitialized = false;
+  bool _isAvailableForDonation = true;
 
   @override
   void didChangeDependencies() {
@@ -31,7 +33,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       userAsync.whenData((user) {
         if (user != null) {
           nameController.text = user.name;
-          phoneController.text = user.phone;
+          phoneController.text = user.phone.isNotEmpty ? user.phone : '+91 ';
           if (bloodGroups.contains(user.bloodType)) {
             selectedBloodGroup = user.bloodType;
           }
@@ -41,6 +43,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
              // Fallback if the database has an old arbitrary string
             selectedLocation = IndianCities.locations.first; 
           }
+          _isAvailableForDonation = user.isAvailableForDonation;
           _isInitialized = true;
         }
       });
@@ -72,6 +75,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         photoUrl: user.photoUrl,
         createdAt: user.createdAt,
         authProvider: user.authProvider,
+        isAvailableForDonation: _isAvailableForDonation,
       );
 
       await ref.read(donorRepositoryProvider).updateUserProfile(updatedUser);
@@ -232,6 +236,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                         ),
                       ],
                     ),
+
                   ],
                 ),
               ),

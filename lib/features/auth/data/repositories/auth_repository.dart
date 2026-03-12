@@ -49,6 +49,7 @@ class AuthRepository {
         'location': location.isEmpty ? 'Unknown Location' : location,
         'photoUrl': '',
         'createdAt': FieldValue.serverTimestamp(),
+        'isAvailableForDonation': true,
       });
     }
 
@@ -85,6 +86,7 @@ class AuthRepository {
         'photoUrl': '',
         'createdAt': FieldValue.serverTimestamp(),
         'authProvider': 'phone',
+        'isAvailableForDonation': true,
       });
     }
 

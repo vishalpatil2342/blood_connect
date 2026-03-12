@@ -1,12 +1,14 @@
 class BloodBankModel {
   final String id;
   final String name;
+  final String hospitalName;
   final String location;
   final Map<String, int> inventory;
 
   BloodBankModel({
     required this.id,
     required this.name,
+    required this.hospitalName,
     required this.location,
     required this.inventory,
   });
@@ -15,6 +17,7 @@ class BloodBankModel {
     return BloodBankModel(
       id: id,
       name: map['name'] ?? '',
+      hospitalName: map['hospitalName'] ?? '',
       location: map['location'] ?? '',
       inventory: map['inventory'] != null
           ? Map<String, int>.from(map['inventory'])
@@ -25,6 +28,7 @@ class BloodBankModel {
   Map<String, dynamic> toMap() {
     return {
       'name': name,
+      'hospitalName': hospitalName,
       'location': location,
       'inventory': inventory,
     };
